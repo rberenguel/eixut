@@ -116,6 +116,13 @@
         const MAX_ENEMIES = 20;
         const MAX_SPHERE_ENEMIES = 3;
         const PLAYER_SIZE = 0.8;
+        const PLAYER_DAMAGE = 10;
+        const CONE_ENEMY_HEALTH = 14;
+        const SPHERE_ENEMY_HEALTH = 28;
+        const HEALTH_BAR_WIDTH = 1.5;
+        const HEALTH_BAR_HEIGHT = 0.15;
+        const HEALTH_BAR_VISIBILITY_DURATION = 2.0;
+        const CONE_ENEMY_HEIGHT = PLAYER_SIZE * 2.0;
         const DASH_DISTANCE = 4;
         const DASH_SPEED = 25;
         const ATTACK_DISTANCE = DASH_DISTANCE;
@@ -145,6 +152,7 @@
         const DEBRIS_LIFETIME = 5.0;
         const SCREEN_SHAKE_DURATION = 0.15;
         const SCREEN_SHAKE_INTENSITY = 8; // In pixels
+        const PLAYER_ROTATION_SPEED = 10;
 
 
         // --- GAME STATE ---
@@ -161,6 +169,7 @@
         let isGameOver = false;
         let dashStartPosition = new THREE.Vector3();
         let dashDirection = new THREE.Vector3();
+        let targetQuaternion = new THREE.Quaternion();
         let attackStartPosition = new THREE.Vector3();
         let attackDirection = new THREE.Vector3();
         let swipeStartTime = 0;
@@ -177,12 +186,48 @@
              constructor(spawnPosition) {
                 this.mesh = null;
                 this.velocity = new THREE.Vector3();
+                this.health = 10;
+                this.maxHealth = 10;
+                this.healthBarVisibleTimer = 0;
+                
+                // Health Bar
+                const healthBarBGMaterial = new THREE.SpriteMaterial({ color: 0x330000 });
+                this.healthBarBG = new THREE.Sprite(healthBarBGMaterial);
+                this.healthBarBG.scale.set(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT, 1);
+
+                const healthBarMaterial = new THREE.SpriteMaterial({ color: 0xff0000 });
+                this.healthBar = new THREE.Sprite(healthBarMaterial);
+                this.healthBar.scale.set(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT, 1);
+                this.healthBar.position.z = 0.1; // Render in front of BG
+
+                this.healthBarGroup = new THREE.Group();
+                this.healthBarGroup.add(this.healthBarBG);
+                this.healthBarGroup.add(this.healthBar);
+                this.healthBarGroup.visible = false;
              }
-             update(deltaTime, playerPosition) { /* To be implemented by subclasses */ }
+             update(deltaTime, playerPosition) { 
+                if (this.healthBarVisibleTimer > 0) {
+                    this.healthBarVisibleTimer -= deltaTime;
+                    if (this.healthBarVisibleTimer <= 0) {
+                        this.healthBarGroup.visible = false;
+                    }
+                }
+                if (this.healthBarGroup.visible) {
+                    const targetScaleX = (this.health / this.maxHealth) * HEALTH_BAR_WIDTH;
+                    this.healthBar.scale.x += (targetScaleX - this.healthBar.scale.x) * 7 * deltaTime;
+                }
+             }
              destroy() {
                 createEnemyExplosion(this.mesh.position);
                 createDebrisSplat(this.mesh.position);
                 scene.remove(this.mesh);
+                scene.remove(this.healthBarGroup);
+             }
+             takeDamage(damage) {
+                 this.health = Math.max(0, this.health - damage);
+                 this.healthBarGroup.visible = true;
+                 this.healthBarVisibleTimer = HEALTH_BAR_VISIBILITY_DURATION;
+                 return this.health <= 0;
              }
         }
 
@@ -190,23 +235,33 @@
         class ConeEnemy extends BaseEnemy {
             constructor(spawnPosition) {
                 super(spawnPosition);
+                this.maxHealth = CONE_ENEMY_HEALTH;
+                this.health = this.maxHealth;
                 this.state = 'spawning'; 
                 this.chargeTimer = 0;
                 this.waitTimer = 0.5;
                 this.targetPosition = new THREE.Vector3();
 
-                const height = PLAYER_SIZE * 1.5;
-                const geometry = new THREE.ConeGeometry(PLAYER_SIZE / 2, height, 16);
+                const height = CONE_ENEMY_HEIGHT;
+                const radius = PLAYER_SIZE / 2.5; // Slimmer
+                const geometry = new THREE.ConeGeometry(radius, height, 16);
                 this.material = new THREE.MeshStandardMaterial({ color: 0xcccccc });
                 this.mesh = new THREE.Mesh(geometry, this.material);
                 this.mesh.position.copy(spawnPosition);
                 
                 const edges = new THREE.EdgesGeometry(geometry);
                 this.mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 })));
+                
                 scene.add(this.mesh);
+                scene.add(this.healthBarGroup);
             }
 
             update(deltaTime, playerPosition) {
+                super.update(deltaTime); // Handle health bar animation
+                
+                this.healthBarGroup.position.copy(this.mesh.position);
+                this.healthBarGroup.position.y += CONE_ENEMY_HEIGHT / 2 + 0.5;
+
                 if (isGameOver) {
                     this.velocity.set(0,0,0);
                     return;
@@ -269,6 +324,8 @@
         class SphereEnemy extends BaseEnemy {
              constructor(spawnPosition) {
                 super(spawnPosition);
+                this.maxHealth = SPHERE_ENEMY_HEALTH;
+                this.health = this.maxHealth;
                 this.state = 'wandering'; 
                 this.actionTimer = SPHERE_ENEMY_MIN_ACTION_INTERVAL;
                 this.wanderDirection = new THREE.Vector3();
@@ -283,7 +340,9 @@
                 
                 const edges = new THREE.EdgesGeometry(geometry);
                 this.mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 })));
+                
                 scene.add(this.mesh);
+                scene.add(this.healthBarGroup);
 
                 this.setNewWanderDirection();
                 sphereEnemyCount++;
@@ -300,6 +359,11 @@
             }
 
             update(deltaTime, playerPosition) {
+                super.update(deltaTime); // Handle health bar animation
+
+                this.healthBarGroup.position.copy(this.mesh.position);
+                this.healthBarGroup.position.y += this.radius + 0.5;
+
                 if (isGameOver) {
                     this.velocity.set(0, 0, 0);
                     return;
@@ -371,6 +435,55 @@
                 }
             }
         }
+        
+        // --- Cube Enemy Class ---
+        class CubeEnemy extends BaseEnemy {
+            constructor(spawnPosition) {
+                super(spawnPosition);
+                this.radius = PLAYER_SIZE / 2; // For collision purposes
+
+                const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
+                this.material = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+                this.mesh = new THREE.Mesh(geometry, this.material);
+                this.mesh.position.copy(spawnPosition);
+                this.mesh.position.y = PLAYER_SIZE / 2;
+
+                const edges = new THREE.EdgesGeometry(geometry);
+                this.mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 })));
+                scene.add(this.mesh);
+
+                this.velocity.set(1, 0, 0); // Placeholder velocity
+            }
+
+            update(deltaTime, playerPosition) {
+                super.update(deltaTime);
+                // Placeholder: moves and tumbles. Behavior to be added later.
+                if (isGameOver) {
+                    this.velocity.set(0, 0, 0);
+                    return;
+                }
+
+                this.mesh.position.addScaledVector(this.velocity, deltaTime);
+                
+                const moveDistance = this.velocity.length() * deltaTime;
+                if (moveDistance > 0) {
+                    const axis = new THREE.Vector3(this.velocity.z, 0, -this.velocity.x).normalize();
+                    this.mesh.rotateOnWorldAxis(axis, (moveDistance / PLAYER_SIZE) * 2);
+                }
+
+                // Basic arena collision
+                const halfWidth = ARENA_WIDTH / 2 - this.radius;
+                if (this.mesh.position.x > halfWidth || this.mesh.position.x < -halfWidth) {
+                    this.mesh.position.x = Math.max(-halfWidth, Math.min(halfWidth, this.mesh.position.x));
+                    this.velocity.x *= -1;
+                }
+                const halfDepth = ARENA_DEPTH / 2 - this.radius;
+                if (this.mesh.position.z > halfDepth || this.mesh.position.z < -halfDepth) {
+                    this.mesh.position.z = Math.max(-halfDepth, Math.min(halfDepth, this.mesh.position.z));
+                    this.velocity.z *= -1;
+                }
+            }
+        }
 
 
         class Bullet {
@@ -415,7 +528,7 @@
             createArena();
             createPlayer();
             initParticles();
-            enemies.push(new ConeEnemy(new THREE.Vector3(8, PLAYER_SIZE * 1.5 / 2, -8)));
+            enemies.push(new ConeEnemy(new THREE.Vector3(8, CONE_ENEMY_HEIGHT / 2, -8)));
             window.addEventListener('resize', onWindowResize, false);
             document.getElementById('gameOverOverlay').addEventListener('click', restartGame);
             setupControls();
@@ -467,9 +580,10 @@
         }
 
         function createPlayer() {
-            const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
-            player = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xffffff }));
-            player.position.set(0, PLAYER_SIZE / 2, 0);
+            const geometry = new THREE.BoxGeometry(0.5 * PLAYER_SIZE, 0.5 * PLAYER_SIZE * 2, 0.5 * PLAYER_SIZE);
+            const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            player = new THREE.Mesh(geometry, material);
+            player.position.set(0, 0.5 * PLAYER_SIZE, 0); // Position so base is at y=0
             player.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0x000000 })));
             
             swordPivot = new THREE.Object3D();
@@ -610,21 +724,25 @@
                     const position = new THREE.Vector3(spawnPoint.x, 0, spawnPoint.z);
                     enemies.push(new SphereEnemy(position));
                 } else {
-                    const position = new THREE.Vector3(spawnPoint.x, PLAYER_SIZE * 1.5 / 2, spawnPoint.z);
+                    const position = new THREE.Vector3(spawnPoint.x, CONE_ENEMY_HEIGHT / 2, spawnPoint.z);
                     enemies.push(new ConeEnemy(position));
                 }
             }
         }
 
-        function killEnemy(enemy, index) {
+        function processEnemyHit(enemy, index) {
             hitEnemiesInAttack.push(enemy);
-            enemy.destroy();
-            enemies.splice(index, 1);
-            enemiesKilled++;
-            startScreenShake();
-            updateUI();
-            const spawnCount = Math.floor(Math.random() * 2) + 1; // 1 or 2 enemies
-            spawnEnemies(spawnCount);
+            const died = enemy.takeDamage(PLAYER_DAMAGE);
+            
+            if (died) {
+                enemy.destroy();
+                enemies.splice(index, 1);
+                enemiesKilled++;
+                startScreenShake();
+                updateUI();
+                const spawnCount = Math.floor(Math.random() * 2) + 1; // 1 or 2 enemies
+                spawnEnemies(spawnCount);
+            }
         }
 
         function createPlayerHitExplosion(position) {
@@ -706,7 +824,7 @@
             });
 
             // Reset player state
-            player.position.set(0, PLAYER_SIZE / 2, 0);
+            player.position.set(0, 0.5 * PLAYER_SIZE, 0);
             player.quaternion.set(0, 0, 0, 1);
             updatePlayerHealthColor();
 
@@ -715,7 +833,7 @@
             document.getElementById('cooldownBar').style.width = '100%';
 
             // Spawn initial enemy
-            enemies.push(new ConeEnemy(new THREE.Vector3(8, PLAYER_SIZE * 1.5 / 2, -8)));
+            enemies.push(new ConeEnemy(new THREE.Vector3(8, CONE_ENEMY_HEIGHT / 2, -8)));
 
             // IMPORTANT: Set isGameOver to false at the end
             isGameOver = false;
@@ -799,10 +917,9 @@
             // --- Manual Player Movement & Collision ---
             let wallCollision = false;
             if (isDashing) {
+                player.quaternion.slerp(targetQuaternion, deltaTime * PLAYER_ROTATION_SPEED);
                 const moveDistance = DASH_SPEED * deltaTime;
                 player.position.addScaledVector(dashDirection, moveDistance);
-                const axis = new THREE.Vector3(dashDirection.z, 0, -dashDirection.x);
-                player.rotateOnWorldAxis(axis, (moveDistance / PLAYER_SIZE) * 2);
 
                 if (player.position.distanceToSquared(dashStartPosition) >= DASH_DISTANCE * DASH_DISTANCE) {
                     stopDash(true);
@@ -820,8 +937,9 @@
             }
 
             // Arena bounds collision
-            const halfWidth = ARENA_WIDTH / 2 - PLAYER_SIZE / 2;
-            const halfDepth = ARENA_DEPTH / 2 - PLAYER_SIZE / 2;
+            const halfPlayerWidth = (0.5 * PLAYER_SIZE) / 2;
+            const halfWidth = ARENA_WIDTH / 2 - halfPlayerWidth;
+            const halfDepth = ARENA_DEPTH / 2 - halfPlayerWidth;
             if (player.position.x > halfWidth || player.position.x < -halfWidth || player.position.z > halfDepth || player.position.z < -halfDepth) {
                 player.position.x = Math.max(-halfWidth, Math.min(halfWidth, player.position.x));
                 player.position.z = Math.max(-halfDepth, Math.min(halfDepth, player.position.z));
@@ -861,7 +979,7 @@
                         const enemy = enemies[i];
                         if (hitEnemiesInAttack.includes(enemy)) continue;
                         if (enemy.mesh.position.distanceTo(tipPosition) <= PLAYER_SIZE) {
-                            killEnemy(enemy, i);
+                            processEnemyHit(enemy, i);
                         }
                     }
 
@@ -934,6 +1052,9 @@
             isDashing = true;
             dashStartPosition.copy(player.position);
             dashDirection.copy(direction);
+            
+            const angle = Math.atan2(direction.x, direction.z);
+            targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
         }
         
         function startPlayerAttack(direction) {
@@ -963,7 +1084,7 @@
                 );
 
                 if (distSq <= attackPathHitRadiusSq) {
-                    killEnemy(enemy, i);
+                    processEnemyHit(enemy, i);
                 }
             }
         }
@@ -976,11 +1097,7 @@
                 const finalPosition = dashStartPosition.clone().addScaledVector(dashDirection, DASH_DISTANCE);
                 player.position.copy(finalPosition);
             }
-
-            const euler = new THREE.Euler().setFromQuaternion(player.quaternion, 'XYZ');
-            euler.x = Math.round(euler.x / (Math.PI / 2)) * (Math.PI / 2);
-            euler.z = Math.round(euler.z / (Math.PI / 2)) * (Math.PI / 2);
-            player.quaternion.setFromEuler(euler);
+            player.quaternion.copy(targetQuaternion);
         }
         
         function stopAttack() {
@@ -1003,4 +1120,3 @@
     </script>
 </body>
 </html>
-
