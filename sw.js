@@ -1,4 +1,4 @@
-const CACHE_NAME = "eixut-cache-v0.0.1";
+const CACHE_NAME = "eixut-cache-v0.1.0";
 const urlsToCache = [
   "./",
   "./index.html",

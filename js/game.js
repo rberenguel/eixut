@@ -48,94 +48,121 @@ class BaseEnemy {
 }
 
 // --- Cone Enemy Class ---
-class ConeEnemy extends BaseEnemy {
-    constructor(spawnPosition) {
-        super(spawnPosition);
-        this.maxHealth = CONE_ENEMY_HEALTH;
-        this.health = this.maxHealth;
-        this.state = 'spawning'; 
-        this.chargeTimer = 0;
-        this.waitTimer = 0.5;
-        this.targetPosition = new THREE.Vector3();
+        class ConeEnemy extends BaseEnemy {
+            constructor(spawnPosition) {
+                super(spawnPosition);
+                this.maxHealth = CONE_ENEMY_HEALTH;
+                this.health = this.maxHealth;
+                this.state = 'choosing_action'; 
+                this.chargeTimer = 0;
+                this.waitTimer = 0;
+                this.strafeTimer = 0;
+                this.aimTarget = new THREE.Vector3();
+                this.strafeDirection = new THREE.Vector3();
+                this.radius = PLAYER_SIZE / 2.5;
 
-        const height = CONE_ENEMY_HEIGHT;
-        const radius = PLAYER_SIZE / 2.5;
-        const geometry = new THREE.ConeGeometry(radius, height, 16);
-        this.material = new THREE.MeshStandardMaterial({ color: 0xcccccc });
-        this.mesh = new THREE.Mesh(geometry, this.material);
-        this.mesh.position.copy(spawnPosition);
-        
-        const edges = new THREE.EdgesGeometry(geometry);
-        this.mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 })));
-        
-        scene.add(this.mesh);
-        scene.add(this.healthBarGroup);
-    }
+                const height = CONE_ENEMY_HEIGHT;
+                const geometry = new THREE.ConeGeometry(this.radius, height, 16);
+                this.material = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+                this.mesh = new THREE.Mesh(geometry, this.material);
+                this.mesh.position.copy(spawnPosition);
+                
+                const edges = new THREE.EdgesGeometry(geometry);
+                this.mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 })));
+                
+                scene.add(this.mesh);
+                scene.add(this.healthBarGroup);
+            }
 
-    update(deltaTime, playerPosition) {
-        super.update(deltaTime);
-        
-        this.healthBarGroup.position.copy(this.mesh.position);
-        this.healthBarGroup.position.y += CONE_ENEMY_HEIGHT / 2 + 0.5;
+            update(deltaTime, playerPosition) {
+                super.update(deltaTime);
+                
+                this.healthBarGroup.position.copy(this.mesh.position);
+                this.healthBarGroup.position.y += CONE_ENEMY_HEIGHT / 2 + 0.5;
 
-        if (gameState !== 'playing') {
-            this.velocity.set(0,0,0);
-            return;
-        }
-       
-        switch (this.state) {
-            case 'spawning':
-            case 'recovering':
-                this.material.color.setHex(0xcccccc);
-                this.waitTimer -= deltaTime;
-                if (this.waitTimer <= 0) this.state = 'seeking';
-                break;
-            case 'seeking':
-                this.material.color.setHex(0xcccccc);
-                const distanceToPlayer = this.mesh.position.distanceTo(playerPosition);
-                if (distanceToPlayer <= DASH_DISTANCE) {
-                    this.state = 'charging';
+                if (gameState !== 'playing') {
+                    this.velocity.set(0,0,0);
+                } else {
+                    switch (this.state) {
+                        case 'idle':
+                            this.velocity.set(0, 0, 0);
+                            this.waitTimer -= deltaTime;
+                            if (this.waitTimer <= 0) {
+                                this.state = 'choosing_action';
+                            }
+                            break;
+
+                        case 'choosing_action':
+                            reusableVector1.copy(playerPosition).sub(this.mesh.position).normalize();
+                            this.strafeDirection.set(reusableVector1.z, 0, -reusableVector1.x).multiplyScalar(Math.random() < 0.5 ? 1 : -1);
+                            this.strafeTimer = Math.random() * 0.5 + 0.75; // Strafe for 0.75-1.25 seconds
+                            this.state = 'strafing';
+                            break;
+
+                        case 'strafing':
+                            this.velocity.copy(this.strafeDirection).multiplyScalar(ENEMY_SPEED * 1.5);
+                            this.strafeTimer -= deltaTime;
+
+                            if (this.strafeTimer <= 0) {
+                                this.state = 'charging';
+                                this.chargeTimer = ENEMY_ATTACK_CHARGE_TIME;
+                                this.velocity.set(0, 0, 0);
+                            }
+                            break;
+
+                        case 'charging':
+                            const chargeProgress = 1 - (this.chargeTimer / ENEMY_ATTACK_CHARGE_TIME);
+                            this.material.color.lerpColors(new THREE.Color(0xcccccc), new THREE.Color(0xff0000), chargeProgress);
+                            this.chargeTimer -= deltaTime;
+                            if (this.chargeTimer <= 0) {
+                                this.state = 'pre-firing';
+                                this.chargeTimer = ENEMY_PRE_FIRE_TIME;
+                                this.material.emissive.setHex(0xff0000);
+                                this.aimTarget.copy(playerPosition);
+                            }
+                            break;
+
+                        case 'pre-firing':
+                             this.chargeTimer -= deltaTime;
+                             if (this.chargeTimer <= 0) {
+                                this.state = 'firing';
+                                this.material.emissive.setHex(0x000000);
+                             }
+                             break;
+
+                        case 'firing':
+                            this.fireBullet();
+                            this.state = 'idle';
+                            this.waitTimer = Math.random() * 0.5 + 0.75;
+                            break;
+                    }
+                }
+                
+                this.mesh.position.addScaledVector(this.velocity, deltaTime);
+
+                const halfWidth = ARENA_WIDTH / 2 - this.radius;
+                const halfDepth = ARENA_DEPTH / 2 - this.radius;
+                let hitWall = false;
+                if (this.mesh.position.x >= halfWidth || this.mesh.position.x <= -halfWidth) {
+                    this.mesh.position.x = Math.max(-halfWidth, Math.min(halfWidth, this.mesh.position.x));
+                    hitWall = true;
+                }
+                if (this.mesh.position.z >= halfDepth || this.mesh.position.z <= -halfDepth) {
+                    this.mesh.position.z = Math.max(-halfDepth, Math.min(halfDepth, this.mesh.position.z));
+                    hitWall = true;
+                }
+
+                if (hitWall && this.state === 'strafing') {
+                    this.state = 'charging'; // If it hits a wall, just start shooting
                     this.chargeTimer = ENEMY_ATTACK_CHARGE_TIME;
                     this.velocity.set(0, 0, 0);
-                    this.targetPosition.copy(playerPosition);
-                } else {
-                    reusableVector1.copy(playerPosition).sub(this.mesh.position);
-                    reusableVector1.y = 0;
-                    reusableVector1.normalize();
-                    this.velocity.copy(reusableVector1).multiplyScalar(ENEMY_SPEED);
                 }
-                break;
-            case 'charging':
-                const chargeProgress = 1 - (this.chargeTimer / ENEMY_ATTACK_CHARGE_TIME);
-                this.material.color.lerpColors(new THREE.Color(0xcccccc), new THREE.Color(0xff0000), chargeProgress);
-                this.chargeTimer -= deltaTime;
-                if (this.chargeTimer <= 0) {
-                    this.state = 'pre-firing';
-                    this.chargeTimer = ENEMY_PRE_FIRE_TIME;
-                    this.material.emissive.setHex(0xff0000);
-                }
-                break;
-            case 'pre-firing':
-                 this.chargeTimer -= deltaTime;
-                 if (this.chargeTimer <= 0) {
-                    this.state = 'firing';
-                    this.material.emissive.setHex(0x000000);
-                 }
-                 break;
-            case 'firing':
-                this.fireBullet();
-                this.state = 'recovering';
-                this.waitTimer = 0.5;
-                break;
+            }
+
+            fireBullet() {
+                bullets.push(new Bullet(this.mesh.position, this.aimTarget));
+            }
         }
-        this.mesh.position.addScaledVector(this.velocity, deltaTime);
-    }
-
-    fireBullet() {
-        bullets.push(new Bullet(this.mesh.position, this.targetPosition));
-    }
-}
-
 // --- Sphere Enemy Class ---
 class SphereEnemy extends BaseEnemy {
      constructor(spawnPosition) {
@@ -602,7 +629,7 @@ function updateBullets(deltaTime) {
                 if (particle.lifetime > 0) {
                     particle.lifetime -= deltaTime;
                     const lifeRatio = particle.lifetime / TRAIL_PARTICLE_LIFETIME;
-                    particle.mesh.material.opacity = 0.8 * lifeRatio;
+                    particle.mesh.material.opacity = 0.6 * lifeRatio;
                     const scale = 1.5 * lifeRatio;
                     particle.mesh.scale.set(scale, scale, scale);
                     particle.mesh.lookAt(camera.position);
@@ -955,6 +982,47 @@ function animate() {
                         }
                         
                         lastSwordTipPosition.copy(reusableVector1);
+
+                        // Check for bullet collisions along the sword path for this frame
+                        for (let j = bullets.length - 1; j >= 0; j--) {
+                            const bullet = bullets[j];
+                            if (bullet.isReflected) continue;
+
+                            const bulletPos = bullet.mesh.position;
+                            const distSq = pointToSegmentDistanceSq(
+                                { x: bulletPos.x, z: bulletPos.z },
+                                { x: lastSwordTipPosition.x, z: lastSwordTipPosition.z },
+                                { x: reusableVector1.x, z: reusableVector1.z }
+                            );
+
+                            const slashHitRadiusSq = (PLAYER_SIZE) ** 2;
+
+                            if (distSq <= slashHitRadiusSq) {
+                                bullet.isReflected = true;
+                                
+                                bullet.mesh.material.color.setHex(0x00aaff);
+                                bullet.mesh.material.emissive.setHex(0x00aaff);
+                                bullet.light.color.setHex(0x00aaff);
+
+                                // --- Correct Reflection Logic ---
+                                // 1. Get the normal of the sword's slash (perpendicular to the attack)
+                                const slashNormal = reusableVector2.set(attackDirection.z, 0, -attackDirection.x);
+
+                                // 2. Get the bullet's incoming velocity
+                                const incomingVelocity = reusableVector3.copy(bullet.velocity);
+
+                                // 3. Reflect the incoming velocity across the slash normal
+                                incomingVelocity.reflect(slashNormal);
+                                
+                                // 4. Apply the new velocity and speed boost
+                                bullet.velocity.copy(incomingVelocity).multiplyScalar(REFLECTED_BULLET_SPEED_MULTIPLIER);
+
+                                // 5. Update the bullet's mesh to face the new direction
+                                const newDirection = reusableVector1.copy(bullet.velocity).normalize();
+                                const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), newDirection);
+                                bullet.mesh.quaternion.copy(quaternion);
+                            }
+                        }
 
                         for (let i = enemies.length - 1; i >= 0; i--) {
                             const enemy = enemies[i];
