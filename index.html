@@ -1,43 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
+  <head>
     <title>Eixut</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sixtyfour&display=swap" rel="stylesheet">
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sixtyfour&display=swap"
+      rel="stylesheet"
+    />
     <link rel="manifest" href="./manifest.json" />
-    <link rel="stylesheet" href="./css/style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body>
     <div id="game-container">
-        <div id="uiContainer">
-            <div id="killsDisplay">KILLS: 0</div>
-            <div id="cooldownContainer">
-                <div id="cooldownBar"></div>
-            </div>
-            <div id="healthDisplay">HEALTH: ❤️❤️❤️</div>
+      <div id="uiContainer">
+        <div id="killsDisplay">KILLS: 0</div>
+        <div id="cooldownContainer">
+          <div id="cooldownBar"></div>
         </div>
-        <div id="gameOverOverlay" class="overlay">GAME OVER</div>
-        <div id="startModal" class="overlay">
-            <h1>EIXUT</h1>
-            <ul>
-                <li><span class="key">SWIPE</span> <span class="action">to move and dodge</span></li>
-                <li><span class="key">HOLD + SWIPE</span> <span class="action">to attack</span></li>
-                <li><span class="key">LONG HOLD + SWIPE</span> <span class="action">to hard attack</span></li>
-                <li><span class="key">TAP</span> <span class="action">to shield</span></li>
-                <li>Best played on mobile (portrait)</li>
-            </ul>
-            <p class="start-text">( TAP TO START )</p>
-        </div>
+        <div id="healthDisplay">HEALTH: ❤️❤️❤️</div>
+      </div>
+      <div id="gameOverOverlay" class="overlay">GAME OVER</div>
+      <div id="startModal" class="overlay">
+        <h1>EIXUT</h1>
+        <ul>
+          <li>
+            <span class="key">SWIPE</span>
+            <span class="action">to move and dodge</span>
+          </li>
+          <li>
+            <span class="key">HOLD + SWIPE</span>
+            <span class="action">to attack</span>
+          </li>
+          <li>
+            <span class="key">LONG HOLD + SWIPE</span>
+            <span class="action">to hard attack</span>
+          </li>
+          <li>
+            <span class="key">TAP</span> <span class="action">to shield</span>
+          </li>
+          <li>Best played on mobile (portrait)</li>
+        </ul>
+        <p class="start-text">( TAP TO START )</p>
+      </div>
     </div>
 
     <script src="./libs/three.min.js"></script>
     <script src="./js/config.js"></script>
     <script src="./js/game.js"></script>
     <script src="./js/main.js"></script>
-    
+
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
@@ -57,5 +74,5 @@
         console.info("Service workers not available on this device");
       }
     </script>
-</body>
+  </body>
 </html>
