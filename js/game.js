@@ -470,7 +470,7 @@ function init() {
     1,
     1000,
   );
-  camera.position.set(0, 15, 15);
+  camera.position.set(0, 0, 0);
   camera.lookAt(0, 0, 0);
   scene.add(camera);
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -1017,9 +1017,9 @@ function startScreenShake() {
 function updateCameraZoom() {
   const aspect = window.innerWidth / window.innerHeight;
   if (aspect < 1) {
-    cameraOffset.set(0, 25, 22);
+    cameraOffset.set(0, 15, 22);
   } else {
-    cameraOffset.set(0, 15, 15);
+    cameraOffset.set(0, 15, 20);
   }
 }
 
