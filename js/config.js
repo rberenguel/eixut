@@ -53,8 +53,8 @@ const SHIELD_DURATION = 0.5;
 const SHIELD_RADIUS = PLAYER_SIZE * 1.5;
 const SHIELD_STUN_DURATION = 1.0;
 const REFLECTED_BULLET_SPEED_MULTIPLIER = 1.5;
-const TRAIL_PARTICLE_COUNT = 20;
-const TRAIL_PARTICLE_LIFETIME = 0.25;
+const TRAIL_PARTICLE_COUNT = 50;
+const TRAIL_PARTICLE_LIFETIME = 0.4;
 const EXPLOSION_PARTICLE_COUNT = 45; 
 const PARTICLES_PER_EXPLOSION = 15;
 const EXPLOSION_PARTICLE_LIFETIME = 0.8;
@@ -96,3 +96,8 @@ let nextExplosionParticleIndex = 0;
 let nextDebrisIndex = 0;
 let hitEnemiesInAttack = [];
 let startCoords = null;
+
+// --- REUSABLE OBJECTS ---
+let reusableVector1 = new THREE.Vector3();
+let reusableVector2 = new THREE.Vector3();
+let reusableVector3 = new THREE.Vector3();

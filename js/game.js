@@ -99,10 +99,10 @@ class ConeEnemy extends BaseEnemy {
                     this.velocity.set(0, 0, 0);
                     this.targetPosition.copy(playerPosition);
                 } else {
-                    const direction = playerPosition.clone().sub(this.mesh.position);
-                    direction.y = 0;
-                    direction.normalize();
-                    this.velocity.copy(direction).multiplyScalar(ENEMY_SPEED);
+                    reusableVector1.copy(playerPosition).sub(this.mesh.position);
+                    reusableVector1.y = 0;
+                    reusableVector1.normalize();
+                    this.velocity.copy(reusableVector1).multiplyScalar(ENEMY_SPEED);
                 }
                 break;
             case 'charging':
@@ -246,14 +246,13 @@ class SphereEnemy extends BaseEnemy {
         }
          this.mesh.position.addScaledVector(this.velocity, deltaTime);
          
-         if (this.state !== 'stunned') {
-            const distanceMoved = this.velocity.length() * deltaTime;
-            if (distanceMoved > 0) {
-                const rotationAxis = new THREE.Vector3(this.velocity.z, 0, -this.velocity.x).normalize();
-                this.mesh.rotateOnWorldAxis(rotationAxis, distanceMoved / this.radius);
-            }
-         }
-
+                          if (this.state !== 'stunned') {
+                             const distanceMoved = this.velocity.length() * deltaTime;
+                             if (distanceMoved > 0) {
+                                 reusableVector1.set(this.velocity.z, 0, -this.velocity.x).normalize();
+                                 this.mesh.rotateOnWorldAxis(reusableVector1, distanceMoved / this.radius);
+                             }
+                          }
         const halfWidth = ARENA_WIDTH / 2 - this.radius;
         const halfDepth = ARENA_DEPTH / 2 - this.radius;
         let bounced = false;
@@ -301,14 +300,13 @@ class CubeEnemy extends BaseEnemy {
             return;
         }
 
-        this.mesh.position.addScaledVector(this.velocity, deltaTime);
-        
-        const moveDistance = this.velocity.length() * deltaTime;
-        if (moveDistance > 0) {
-            const axis = new THREE.Vector3(this.velocity.z, 0, -this.velocity.x).normalize();
-            this.mesh.rotateOnWorldAxis(axis, (moveDistance / PLAYER_SIZE) * 2);
-        }
-
+                        this.mesh.position.addScaledVector(this.velocity, deltaTime);
+                        
+                        const moveDistance = this.velocity.length() * deltaTime;
+                        if (moveDistance > 0) {
+                            reusableVector1.set(this.velocity.z, 0, -this.velocity.x).normalize();
+                            this.mesh.rotateOnWorldAxis(reusableVector1, (moveDistance / PLAYER_SIZE) * 2);
+                        }
         const halfWidth = ARENA_WIDTH / 2 - this.radius;
         if (this.mesh.position.x > halfWidth || this.mesh.position.x < -halfWidth) {
             this.mesh.position.x = Math.max(-halfWidth, Math.min(halfWidth, this.mesh.position.x));
@@ -392,20 +390,22 @@ function createArena() {
     scene.add(arenaBounds);
 }
 
-function initParticles() {
-    swordTrailContainer = new THREE.Group();
-    scene.add(swordTrailContainer);
-    const trailParticleGeo = new THREE.SphereGeometry(0.15, 8, 8);
-    for (let i = 0; i < TRAIL_PARTICLE_COUNT; i++) {
-        const particleMat = new THREE.MeshBasicMaterial({ color: 0x88ccff, 
-          //emissive: 0x88ccff, 
-          transparent: true });
-        const particleMesh = new THREE.Mesh(trailParticleGeo, particleMat);
-        particleMesh.visible = false;
-        swordTrailContainer.add(particleMesh);
-        swordTrailParticles.push({ mesh: particleMesh, lifetime: 0 });
-    }
-
+        function initParticles() {
+            swordTrailContainer = new THREE.Group();
+            scene.add(swordTrailContainer);
+            const trailParticleGeo = new THREE.PlaneGeometry(0.2, 0.2);
+            for (let i = 0; i < TRAIL_PARTICLE_COUNT; i++) {
+                const particleMat = new THREE.MeshBasicMaterial({ 
+                  color: 0x88ddff, 
+                  emissive: 0x88ddff, 
+                  transparent: true,
+                  side: THREE.DoubleSide
+                });
+                const particleMesh = new THREE.Mesh(trailParticleGeo, particleMat);
+                particleMesh.visible = false;
+                swordTrailContainer.add(particleMesh);
+                swordTrailParticles.push({ mesh: particleMesh, lifetime: 0 });
+            }
     explosionContainer = new THREE.Group();
     scene.add(explosionContainer);
     const explosionParticleGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
@@ -536,17 +536,17 @@ function updateUI() {
 }
 
 function updateBullets(deltaTime) {
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        const bullet = bullets[i];
-        if (!bullet.mesh) continue; 
-        
-        bullet.mesh.position.add(bullet.velocity.clone().multiplyScalar(deltaTime));
-        const pos = bullet.mesh.position;
-
-        if (pos.x > ARENA_WIDTH / 2 || pos.x < -ARENA_WIDTH / 2 || pos.z > ARENA_DEPTH / 2 || pos.z < -ARENA_DEPTH / 2) {
-            bullet.destroy(); 
-            bullets.splice(i, 1);
-            continue;
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    const bullet = bullets[i];
+                    if (!bullet.mesh) continue; 
+                    
+                    reusableVector1.copy(bullet.velocity).multiplyScalar(deltaTime);
+                    bullet.mesh.position.add(reusableVector1);
+                    const pos = bullet.mesh.position;
+    
+                    if (pos.x > ARENA_WIDTH / 2 || pos.x < -ARENA_WIDTH / 2 || pos.z > ARENA_DEPTH / 2 || pos.z < -ARENA_DEPTH / 2) {
+                        bullet.destroy(); 
+                        bullets.splice(i, 1);            continue;
         }
         
         if (bullet.isReflected) {
@@ -589,18 +589,21 @@ function updateBullets(deltaTime) {
     }
 }
 
-function updateSwordTrail(deltaTime) {
-    for (const particle of swordTrailParticles) {
-        if (particle.lifetime > 0) {
-            particle.lifetime -= deltaTime;
-            particle.mesh.material.opacity = 0.8 * (particle.lifetime / TRAIL_PARTICLE_LIFETIME);
-            if (particle.lifetime <= 0) {
-                particle.mesh.visible = false;
+        function updateSwordTrail(deltaTime) {
+            for (const particle of swordTrailParticles) {
+                if (particle.lifetime > 0) {
+                    particle.lifetime -= deltaTime;
+                    const lifeRatio = particle.lifetime / TRAIL_PARTICLE_LIFETIME;
+                    particle.mesh.material.opacity = 0.8 * lifeRatio;
+                    const scale = 1.5 * lifeRatio;
+                    particle.mesh.scale.set(scale, scale, scale);
+                    particle.mesh.lookAt(camera.position);
+                    if (particle.lifetime <= 0) {
+                        particle.mesh.visible = false;
+                    }
+                }
             }
         }
-    }
-}
-
  function updateExplosionParticles(deltaTime) {
     for (const particle of explosionParticles) {
         if (particle.lifetime > 0) {
@@ -910,27 +913,25 @@ function animate() {
                 swordRotationTimer += deltaTime;
                 const progress = Math.min(swordRotationTimer / SWORD_ARC_DURATION, 1);
                 const startAngle = (-2 * Math.PI) / 3; 
-                const endAngle = Math.PI / 2; 
-                swordPivot.rotation.y = startAngle + (endAngle - startAngle) * progress;
-
-                const tipPosition = new THREE.Vector3();
-                swordTip.getWorldPosition(tipPosition);
+                                        const endAngle = Math.PI / 2; 
+                                        swordPivot.rotation.y = startAngle + (endAngle - startAngle) * progress;
                 
-                for (let i = enemies.length - 1; i >= 0; i--) {
-                    const enemy = enemies[i];
-                    if (hitEnemiesInAttack.includes(enemy)) continue;
-                    if (enemy.mesh.position.distanceTo(tipPosition) <= PLAYER_SIZE) {
-                        processEnemyHit(enemy, i, currentAttackDamage);
-                    }
-                }
-
-                const particle = swordTrailParticles[nextTrailParticleIndex];
-                particle.mesh.position.copy(tipPosition);
-                particle.lifetime = TRAIL_PARTICLE_LIFETIME;
-                particle.mesh.visible = true;
-                nextTrailParticleIndex = (nextTrailParticleIndex + 1) % TRAIL_PARTICLE_COUNT;
-
-                if (progress >= 1) {
+                                        swordTip.getWorldPosition(reusableVector1);
+                                        
+                                        for (let i = enemies.length - 1; i >= 0; i--) {
+                                            const enemy = enemies[i];
+                                            if (hitEnemiesInAttack.includes(enemy)) continue;
+                                            if (enemy.mesh.position.distanceTo(reusableVector1) <= PLAYER_SIZE) {
+                                                processEnemyHit(enemy, i, currentAttackDamage);
+                                            }
+                                        }
+                
+                                        const particle = swordTrailParticles[nextTrailParticleIndex];
+                                        particle.mesh.position.copy(reusableVector1);
+                                        particle.lifetime = TRAIL_PARTICLE_LIFETIME;
+                                        particle.mesh.visible = true;
+                                        nextTrailParticleIndex = (nextTrailParticleIndex + 1) % TRAIL_PARTICLE_COUNT;
+                                if (progress >= 1) {
                     stopAttack();
                 }
             } else if (playerMovementFinished || wallCollision) {
