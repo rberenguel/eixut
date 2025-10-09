@@ -106,7 +106,7 @@ class ConeEnemy extends BaseEnemy {
           this.strafeDirection
             .set(reusableVector1.z, 0, -reusableVector1.x)
             .multiplyScalar(Math.random() < 0.5 ? 1 : -1);
-          this.strafeTimer = Math.random() * 0.5 + 0.75; // Strafe for 0.75-1.25 seconds
+          this.strafeTimer = Math.random() * 1.5 + 0.75;
           this.state = "strafing";
           break;
 
@@ -151,7 +151,7 @@ class ConeEnemy extends BaseEnemy {
         case "firing":
           this.fireBullet();
           this.state = "idle";
-          this.waitTimer = Math.random() * 0.5 + 0.75;
+          this.waitTimer = Math.random() * 1.5 + 0.75;
           break;
       }
     }
