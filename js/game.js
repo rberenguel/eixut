@@ -1017,7 +1017,7 @@ function startScreenShake() {
 function updateCameraZoom() {
   const aspect = window.innerWidth / window.innerHeight;
   if (aspect < 1) {
-    cameraOffset.set(0, 15, 22);
+    cameraOffset.set(0, 21, 28);
   } else {
     cameraOffset.set(0, 15, 20);
   }
@@ -1294,8 +1294,14 @@ function animate() {
     }
   }
 
-  camera.position.copy(player.position).add(cameraOffset);
-  camera.lookAt(player.position);
+  camera.position.copy(player.position)
+	//camera.position.z = 0
+	camera.position.multiplyScalar(0).add(cameraOffset).add(player.position);//aaaaa
+ reusableVector2.copy(player.position).multiplyScalar(-0.2)
+ reusableVector2.y = 0
+ reusableVector2.z = 0
+ reusableVector2.add(player.position)
+ camera.lookAt(reusableVector2)
   renderer.render(scene, camera);
 }
 
