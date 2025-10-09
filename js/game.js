@@ -231,7 +231,8 @@ class SphereEnemy extends BaseEnemy {
                         playerInvincibilityTimer = PLAYER_INVINCIBILITY_DURATION;
                         player.material.color.setHex(0x555555);
                         createPlayerHitExplosion(player.position);
-                        startScreenShake();
+                        startHardScreenShake();
+                        arenaBorderFlashTimer = ARENA_BORDER_FLASH_DURATION;
                         updateUI();
                         if (playerHealth <= 0 && gameState === 'playing') {
                             gameState = 'playerDying';
@@ -386,15 +387,22 @@ function startGame() {
 function createArena() {
     const halfWidth = ARENA_WIDTH / 2; const halfDepth = ARENA_DEPTH / 2;
     const points = [ new THREE.Vector3(-halfWidth, 0, -halfDepth), new THREE.Vector3(halfWidth, 0, -halfDepth), new THREE.Vector3(halfWidth, 0, halfDepth), new THREE.Vector3(-halfWidth, 0, halfDepth), new THREE.Vector3(-halfWidth, 0, -halfDepth) ];
-    arenaBounds = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0xff0000 }));
+    const material = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 1 });
+    arenaBounds = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
     scene.add(arenaBounds);
 }
 
+function startHardScreenShake() {
+    screenShakeTimer = SCREEN_SHAKE_DURATION;
+    // This is a bit of a hack, we'll just overwrite the intensity for the hard shake
+    // In a bigger project, we might pass intensity as an argument.
+    document.getElementById('game-container').style.setProperty('--shake-intensity', `${SCREEN_SHAKE_INTENSITY_HARD}px`);
+}
+        
         function initParticles() {
             swordTrailContainer = new THREE.Group();
             scene.add(swordTrailContainer);
-            const trailParticleGeo = new THREE.PlaneGeometry(0.2, 0.2);
-            for (let i = 0; i < TRAIL_PARTICLE_COUNT; i++) {
+            const trailParticleGeo = new THREE.PlaneGeometry(0.2, 0.2);            for (let i = 0; i < TRAIL_PARTICLE_COUNT; i++) {
                 const particleMat = new THREE.MeshBasicMaterial({ 
                   color: 0x88ddff, 
                   emissive: 0x88ddff, 
@@ -567,22 +575,22 @@ function updateBullets(deltaTime) {
                 bullet.mesh.material.emissive.setHex(0x00aaff);
                 bullet.light.color.setHex(0x00aaff);
             } else if (pos.distanceTo(player.position) < (0.5 * PLAYER_SIZE / 2 + BULLET_SIZE / 2)) {
-                if (playerInvincibilityTimer <= 0) {
-                    playerHealth--;
-                    playerInvincibilityTimer = PLAYER_INVINCIBILITY_DURATION;
-                    player.material.color.setHex(0x555555);
-                    createPlayerHitExplosion(player.position);
-                    startScreenShake();
-                    updateUI();
-                    if (playerHealth <= 0 && gameState === 'playing') {
-                        gameState = 'playerDying';
-                        gameOverTimer = PLAYER_DEATH_DURATION;
-                        player.visible = false;
-                        shield.visible = false;
-                        createPlayerExplosion(player.position);
-                    }
-                }
-                bullet.destroy(); 
+                                     if (playerInvincibilityTimer <= 0) {
+                                                playerHealth--;
+                                                playerInvincibilityTimer = PLAYER_INVINCIBILITY_DURATION;
+                                                player.material.color.setHex(0x555555);
+                                                createPlayerHitExplosion(player.position);
+                                                startHardScreenShake();
+                                                arenaBorderFlashTimer = ARENA_BORDER_FLASH_DURATION;
+                                                updateUI();
+                                                if (playerHealth <= 0 && gameState === 'playing') {
+                                                    gameState = 'playerDying';
+                                                    gameOverTimer = PLAYER_DEATH_DURATION;
+                                                    player.visible = false;
+                                                    shield.visible = false;
+                                                    createPlayerExplosion(player.position);
+                                                }
+                                            }                bullet.destroy(); 
                 bullets.splice(i, 1);
             }
         }
@@ -823,18 +831,26 @@ function animate() {
             }
         }
 
-        if (shieldTimer > 0) {
-            shieldTimer -= deltaTime;
-            if (shieldTimer <= 0) {
-                shield.visible = false;
-            }
-        }
+                        if (shieldTimer > 0) {
+                            shieldTimer -= deltaTime;
+                            if (shieldTimer <= 0) {
+                                shield.visible = false;
+                            }
+                        }
         
-        if (screenShakeTimer > 0) {
-            const shakeX = (Math.random() - 0.5) * 2 * SCREEN_SHAKE_INTENSITY;
-            const shakeY = (Math.random() - 0.5) * 2 * SCREEN_SHAKE_INTENSITY;
-            document.getElementById('game-container').style.transform = `translate(${shakeX}px, ${shakeY}px)`;
-            screenShakeTimer -= deltaTime;
+                        if (arenaBorderFlashTimer > 0) {
+                            arenaBorderFlashTimer -= deltaTime;
+                            if (arenaBorderFlashTimer <= 0) {
+                                arenaBounds.material.color.setHex(0xff0000); // Revert to red
+                            } else if (arenaBorderFlashTimer > 0 && arenaBounds.material.color.getHex() === 0xff0000) {
+                                arenaBounds.material.color.setHex(0xffffff); // Set to white
+                            }
+                        }
+                        
+                        if (screenShakeTimer > 0) {
+                            const shakeX = (Math.random() - 0.5) * 2 * SCREEN_SHAKE_INTENSITY;
+                            const shakeY = (Math.random() - 0.5) * 2 * SCREEN_SHAKE_INTENSITY;
+                            document.getElementById('game-container').style.transform = `translate(${shakeX}px, ${shakeY}px)`;            screenShakeTimer -= deltaTime;
             if(screenShakeTimer <= 0) {
                 document.getElementById('game-container').style.transform = `translate(0, 0)`;
             }
@@ -914,23 +930,41 @@ function animate() {
                 const progress = Math.min(swordRotationTimer / SWORD_ARC_DURATION, 1);
                 const startAngle = (-2 * Math.PI) / 3; 
                                         const endAngle = Math.PI / 2; 
-                                        swordPivot.rotation.y = startAngle + (endAngle - startAngle) * progress;
-                
-                                        swordTip.getWorldPosition(reusableVector1);
-                                        
-                                        for (let i = enemies.length - 1; i >= 0; i--) {
-                                            const enemy = enemies[i];
-                                            if (hitEnemiesInAttack.includes(enemy)) continue;
-                                            if (enemy.mesh.position.distanceTo(reusableVector1) <= PLAYER_SIZE) {
-                                                processEnemyHit(enemy, i, currentAttackDamage);
-                                            }
-                                        }
-                
-                                        const particle = swordTrailParticles[nextTrailParticleIndex];
-                                        particle.mesh.position.copy(reusableVector1);
-                                        particle.lifetime = TRAIL_PARTICLE_LIFETIME;
-                                        particle.mesh.visible = true;
-                                        nextTrailParticleIndex = (nextTrailParticleIndex + 1) % TRAIL_PARTICLE_COUNT;
+                        swordPivot.rotation.y = startAngle + (endAngle - startAngle) * progress;
+
+                        reusableVector1.setFromMatrixPosition(swordTip.matrixWorld);
+
+                        if (isFirstSwordFrame) {
+                            lastSwordTipPosition.copy(reusableVector1);
+                            isFirstSwordFrame = false;
+                        }
+
+                        const distance = lastSwordTipPosition.distanceTo(reusableVector1);
+                        const particleSpacing = 0.1;
+                        const particlesToSpawn = Math.max(1, Math.ceil(distance / particleSpacing));
+
+                        for (let i = 1; i <= particlesToSpawn; i++) {
+                            const interpolationFactor = i / particlesToSpawn;
+                            reusableVector2.lerpVectors(lastSwordTipPosition, reusableVector1, interpolationFactor);
+                            
+                            const particle = swordTrailParticles[nextTrailParticleIndex];
+                            particle.mesh.position.copy(reusableVector2);
+                            particle.lifetime = TRAIL_PARTICLE_LIFETIME;
+                            particle.mesh.visible = true;
+                            nextTrailParticleIndex = (nextTrailParticleIndex + 1) % TRAIL_PARTICLE_COUNT;
+                        }
+                        
+                        lastSwordTipPosition.copy(reusableVector1);
+
+                        for (let i = enemies.length - 1; i >= 0; i--) {
+                            const enemy = enemies[i];
+                            if (hitEnemiesInAttack.includes(enemy)) continue;
+                            if (enemy.mesh.position.distanceTo(reusableVector1) <= PLAYER_SIZE) {
+                                processEnemyHit(enemy, i, currentAttackDamage);
+                            }
+                        }
+
+
                                 if (progress >= 1) {
                     stopAttack();
                 }
@@ -1020,48 +1054,49 @@ function movePlayer(direction) {
     targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
 }
 
-function startPlayerAttack(direction) {
-    if (isDashing || isAttacking || attackCooldownTimer > 0) return;
-    
-    currentAttackDamage = PLAYER_DAMAGE;
-    attackCooldownTimer = ATTACK_COOLDOWN;
-    isAttacking = true;
-    hitEnemiesInAttack = [];
-    attackStartPosition.copy(player.position);
-    attackDirection.copy(direction);
-    
-    const angle = Math.atan2(direction.x, direction.z);
-    player.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
-    
-    const attackEndPoint = new THREE.Vector3().copy(attackStartPosition).addScaledVector(attackDirection, ATTACK_DISTANCE);
-    const attackPathHitRadiusSq = (PLAYER_SIZE * 1.5)**2;
+        function startPlayerAttack(direction) {
+            if (isDashing || isAttacking || attackCooldownTimer > 0) return;
+            
+            isFirstSwordFrame = true;
+            currentAttackDamage = PLAYER_DAMAGE;
+            attackCooldownTimer = ATTACK_COOLDOWN;
+            isAttacking = true;
+            hitEnemiesInAttack = [];
+            attackStartPosition.copy(player.position);
+            attackDirection.copy(direction);
+            
+            const angle = Math.atan2(direction.x, direction.z);
+            player.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+            
+            const attackEndPoint = new THREE.Vector3().copy(attackStartPosition).addScaledVector(attackDirection, ATTACK_DISTANCE);
+            const attackPathHitRadiusSq = (PLAYER_SIZE * 1.5)**2;
 
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        const enemy = enemies[i];
-        if (hitEnemiesInAttack.includes(enemy)) continue;
-        const enemyPos = enemy.mesh.position;
-        
-        const distSq = pointToSegmentDistanceSq(
-            { x: enemyPos.x, z: enemyPos.z },
-            { x: attackStartPosition.x, z: attackStartPosition.z },
-            { x: attackEndPoint.x, z: attackEndPoint.z }
-        );
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                if (hitEnemiesInAttack.includes(enemy)) continue;
+                const enemyPos = enemy.mesh.position;
+                
+                const distSq = pointToSegmentDistanceSq(
+                    { x: enemyPos.x, z: enemyPos.z },
+                    { x: attackStartPosition.x, z: attackStartPosition.z },
+                    { x: attackEndPoint.x, z: attackEndPoint.z }
+                );
 
-        if (distSq <= attackPathHitRadiusSq) {
-            processEnemyHit(enemy, i, currentAttackDamage);
+                if (distSq <= attackPathHitRadiusSq) {
+                    processEnemyHit(enemy, i, currentAttackDamage);
+                }
+            }
         }
-    }
-}
-
-function startPlayerHardAttack(direction) {
-    if (isDashing || isAttacking || attackCooldownTimer > 0) return;
-    
-    currentAttackDamage = PLAYER_DAMAGE * HARD_ATTACK_DAMAGE_MULTIPLIER;
-    attackCooldownTimer = ATTACK_COOLDOWN * HARD_ATTACK_COOLDOWN_MULTIPLIER;
-    // The rest is the same as a normal attack
-    isAttacking = true;
-    hitEnemiesInAttack = [];
-    attackStartPosition.copy(player.position);
+        
+        function startPlayerHardAttack(direction) {
+            if (isDashing || isAttacking || attackCooldownTimer > 0) return;
+            
+            isFirstSwordFrame = true;
+            currentAttackDamage = PLAYER_DAMAGE * HARD_ATTACK_DAMAGE_MULTIPLIER;
+            attackCooldownTimer = ATTACK_COOLDOWN * HARD_ATTACK_COOLDOWN_MULTIPLIER;
+            // The rest is the same as a normal attack
+            isAttacking = true;
+            hitEnemiesInAttack = [];    attackStartPosition.copy(player.position);
     attackDirection.copy(direction);
     
     const angle = Math.atan2(direction.x, direction.z);

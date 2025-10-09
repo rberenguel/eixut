@@ -64,7 +64,9 @@ const DEBRIS_COUNT = 30;
 const DEBRIS_LIFETIME = 5.0;
 const SCREEN_SHAKE_DURATION = 0.15;
 const SCREEN_SHAKE_INTENSITY = 8;
+const SCREEN_SHAKE_INTENSITY_HARD = 20;
 const PLAYER_ROTATION_SPEED = 10;
+const ARENA_BORDER_FLASH_DURATION = 0.5;
 
 
 // --- GAME STATE ---
@@ -75,11 +77,13 @@ let playerInvincibilityTimer = 0;
 let attackCooldownTimer = 0;
 let shieldTimer = 0;
 let screenShakeTimer = 0;
+let arenaBorderFlashTimer = 0;
 let cameraOffset = new THREE.Vector3(0, 15, 15);
 let isHolding = false;
 let isHardCharging = false;
 let isDashing = false;
 let isAttacking = false;
+let isFirstSwordFrame = true;
 let currentAttackDamage = PLAYER_DAMAGE;
 let gameState = 'paused'; // 'paused', 'playing', 'playerDying', 'gameOver'
 let gameOverTimer = 0;
@@ -96,6 +100,7 @@ let nextExplosionParticleIndex = 0;
 let nextDebrisIndex = 0;
 let hitEnemiesInAttack = [];
 let startCoords = null;
+let lastSwordTipPosition = new THREE.Vector3();
 
 // --- REUSABLE OBJECTS ---
 let reusableVector1 = new THREE.Vector3();
