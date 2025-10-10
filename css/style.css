@@ -23,11 +23,12 @@ body {
   text-align: center;
 }
 #startModal {
-  font-size: 1vw;
+	transform: translate(0, -25%);
+  font-size: 2vw;
 }
 #startModal h1 {
   font-size: 3vw;
-  margin-bottom: 5vh;
+  margin-bottom: 2vh;
   text-shadow: 3px 3px 6px #00aaff;
 }
 #startModal ul {

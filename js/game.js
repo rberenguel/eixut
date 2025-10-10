@@ -292,7 +292,9 @@ class SphereEnemy extends BaseEnemy {
           shieldTimer > 0 &&
           this.mesh.position.distanceTo(playerPosition) < SHIELD_RADIUS
         ) {
+					createImpactFlare(this.mesh.position);
           this.state = "stunned";
+					startHardScreenShake()
           this.stunTimer = SHIELD_STUN_DURATION;
           this.velocity.set(0, 0, 0);
           this.material.color.setHex(0x555555);
@@ -783,7 +785,7 @@ function updateBullets(deltaTime) {
           .negate()
           .multiplyScalar(REFLECTED_BULLET_SPEED_MULTIPLIER);
         bullet.mesh.material.color.setHex(0x00aaff);
-        bullet.mesh.material.emissive.setHex(0x00aaff);
+        //bullet.mesh.material.emissive.setHex(0x00aaff);
         bullet.light.color.setHex(0x00aaff);
       } else if (
         pos.distanceTo(player.position) <
@@ -1249,7 +1251,7 @@ function animate() {
 
           if (distSq <= slashHitRadiusSq) {
             bullet.isReflected = true;
-            bullet.mesh.material.color.setHex(0x00aaff);
+           startScreenShake(); bullet.mesh.material.color.setHex(0x00aaff);
             bullet.light.color.setHex(0x00aaff);
 
             const slashNormal = reusableVector2.set(
