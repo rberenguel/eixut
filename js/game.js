@@ -906,10 +906,18 @@ function processEnemyHit(enemy, index, damage) {
     enemy.destroy();
     enemies.splice(index, 1);
     enemiesKilled++;
+		if((enemiesKilled % 10) == 0){
+			playerHealth = Math.min(playerHealth+1, PLAYER_HEALTH+2)
+		}
     startScreenShake();
     updateUI();
     const spawnCount = Math.floor(Math.random() * 2) + 1;
     spawnEnemies(spawnCount);
+  } else {
+		startScreenShake()
+		reusableVector2.copy(enemy.mesh.position)	
+		reusableVector2.y += 2
+		createImpactFlare(reusableVector2);
   }
 }
 

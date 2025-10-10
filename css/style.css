@@ -63,6 +63,7 @@ body {
 }
 
 #gameOverOverlay {
+	transform: translate(0, -25%);
   display: none;
   font-size: 8vw;
   text-shadow: 3px 3px 6px #ff0000;
@@ -91,9 +92,11 @@ canvas {
 }
 #healthDisplay {
   color: #ff4444;
+	font-size: 60%;
 }
 #killsDisplay {
   color: #44aaff;
+	font-size: 60%;
 }
 #cooldownContainer {
   width: 30vw;
