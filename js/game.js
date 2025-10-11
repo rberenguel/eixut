@@ -20,6 +20,7 @@ import {
   startScreenShake,
   pointToSegmentDistanceSq,
   handleObstacleCollision,
+  startHardScreenShake,
 } from "./modules/utils.js";
 
 function init() {

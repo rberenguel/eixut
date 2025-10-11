@@ -38,7 +38,7 @@ export function handleObstacleCollision(
 
   const moveDistance = movementVector.length();
   const moveDirection = movementVector.clone().normalize();
-  const playerBody = movingObject.getObjectByName("playerBody");
+  const playerBody = movingObject; //.getObjectByName("playerBody");
 
   if (!playerBody) {
     console.error(
@@ -63,6 +63,7 @@ export function handleObstacleCollision(
     movingObject.position.add(moveDirection.multiplyScalar(newMoveDistance));
     // Signal that movement was stopped
     movementVector.set(0, 0, 0);
+    return true;
   } else {
     movingObject.position.add(movementVector);
   }

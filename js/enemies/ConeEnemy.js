@@ -1,7 +1,10 @@
 import { BaseEnemy } from "./BaseEnemy.js";
 import { state } from "../modules/state.js";
 import { Bullet } from "../modules/bullet.js";
-import { isLineOfSightBlocked } from "../modules/utils.js";
+import {
+  handleObstacleCollision,
+  isLineOfSightBlocked,
+} from "../modules/utils.js";
 import {
   CONE_ENEMY_HEALTH,
   PLAYER_SIZE,
@@ -52,7 +55,7 @@ export class ConeEnemy extends BaseEnemy {
 
   update(deltaTime, playerPosition) {
     super.update(deltaTime);
-
+    this.speed = 0;
     this.healthBarGroup.position.copy(this.mesh.position);
     this.healthBarGroup.position.y += CONE_ENEMY_HEIGHT / 2 + 0.5;
 
@@ -92,9 +95,8 @@ export class ConeEnemy extends BaseEnemy {
           break;
 
         case "wandering":
-          this.velocity
-            .copy(this.wanderDirection)
-            .multiplyScalar(ENEMY_SPEED * 0.5);
+          this.speed = ENEMY_SPEED * 0.5;
+          this.velocity.copy(this.wanderDirection).multiplyScalar(this.speed);
           this.waitTimer -= deltaTime;
           if (this.waitTimer <= 0 && !losBlocked) {
             this.state = "choosing_action";
@@ -108,9 +110,8 @@ export class ConeEnemy extends BaseEnemy {
             this.setNewWanderDirection();
             break;
           }
-          this.velocity
-            .copy(this.strafeDirection)
-            .multiplyScalar(ENEMY_SPEED * 1.5);
+          this.speed = ENEMY_SPEED * 1.5;
+          this.velocity.copy(this.strafeDirection).multiplyScalar(this.speed);
           this.strafeTimer -= deltaTime;
 
           if (this.strafeTimer <= 0) {
@@ -158,6 +159,10 @@ export class ConeEnemy extends BaseEnemy {
           this.waitTimer = Math.random() * 1.5 + 0.75;
           break;
       }
+      const movementVector = this.wanderDirection
+        .clone()
+        .multiplyScalar(this.speed * deltaTime);
+      handleObstacleCollision(this.mesh, movementVector, state.obstacles);
     }
 
     this.mesh.position.addScaledVector(this.velocity, deltaTime);

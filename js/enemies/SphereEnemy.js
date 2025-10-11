@@ -1,6 +1,7 @@
 import {
   handleObstacleCollision,
   isLineOfSightBlocked,
+  startScreenShake,
 } from "../modules/utils.js";
 import {
   SPHERE_ENEMY_HEALTH,
@@ -82,7 +83,7 @@ export class SphereEnemy extends BaseEnemy {
     this.actionTimer -= deltaTime;
 
     const losBlocked = isLineOfSightBlocked(this.mesh.position, playerPosition);
-
+    let collided = false;
     switch (this.state) {
       case "stunned":
         this.stunTimer -= deltaTime;
@@ -103,6 +104,19 @@ export class SphereEnemy extends BaseEnemy {
           this.velocity
             .copy(this.wanderDirection)
             .multiplyScalar(SPHERE_ENEMY_WANDER_SPEED);
+          const movementVector = this.velocity
+            .clone()
+            .multiplyScalar(deltaTime);
+          collided = handleObstacleCollision(
+            this.mesh,
+            movementVector,
+            state.obstacles,
+          );
+          if (collided && movementVector.lengthSq() === 0) {
+            this.state = "wandering";
+            this.bounced = true;
+            break;
+          }
         }
         break;
       case "charging":
@@ -129,6 +143,18 @@ export class SphereEnemy extends BaseEnemy {
         }
         break;
       case "dashing":
+        const movementVector = this.velocity.clone().multiplyScalar(deltaTime);
+        collided = handleObstacleCollision(
+          this.mesh,
+          movementVector,
+          state.obstacles,
+        );
+        if (collided && movementVector.lengthSq() === 0) {
+          this.state = "stunned";
+          this.bounced = true;
+          startScreenShake();
+          break;
+        }
         if (
           state.shieldTimer > 0 &&
           this.mesh.position.distanceTo(playerPosition) < SHIELD_RADIUS
@@ -162,8 +188,7 @@ export class SphereEnemy extends BaseEnemy {
         }
         break;
     }
-    this.mesh.position.addScaledVector(this.velocity, deltaTime);
-
+    if (!collided) this.mesh.position.addScaledVector(this.velocity, deltaTime);
     if (this.state !== "stunned") {
       const distanceMoved = this.velocity.length() * deltaTime;
       if (distanceMoved > 0) {

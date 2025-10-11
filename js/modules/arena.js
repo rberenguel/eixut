@@ -70,7 +70,7 @@ export function createObstacles() {
       new THREE.MeshStandardMaterial({
         color: roomColor,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.3,
       }),
     );
     obstacle.position.set(0, PLAYER_SIZE, 0);
