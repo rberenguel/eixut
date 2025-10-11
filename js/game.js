@@ -23,6 +23,25 @@ import {
   startHardScreenShake,
 } from "./modules/utils.js";
 
+const isMobile = () => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  return /android|iphone|ipad|ipod|mobi/i.test(userAgent);
+};
+
+const isDevel =
+  window.location.hostname.startsWith("192") ||
+  window.location.hostname.startsWith("127") ||
+  window.location.hostname === "localhost"; // Added localhost check for completeness
+
+const needsStandalone = () => {
+  const standaloneiOS = window.navigator.standalone === true;
+  const standaloneAndroid = window.matchMedia(
+    "(display-mode: standalone)",
+  ).matches;
+
+  return isMobile() && !isDevel && !standaloneiOS && !standaloneAndroid;
+};
+
 function init() {
   window.state = state;
   state.map = new MapGenerator(10, 10);
@@ -61,7 +80,16 @@ function init() {
   document
     .getElementById("gameOverOverlay")
     .addEventListener("click", restartGame);
-  document.getElementById("startModal").addEventListener("click", startGame);
+  if (needsStandalone()) {
+    document.getElementById("startModal").innerHTML =
+      "Please install as a <span style='color: #c00'>standalone web app</span><br/>Usually this is done via<br/><span style='color: #cc0'>Share -> Add to Home Screen</span>";
+
+    document.getElementsByTagName("canvas")[0].style.display = "none";
+    return;
+  } else {
+    document.getElementById("startModal").addEventListener("click", startGame);
+  }
+
   setupControls();
   updateUI();
   updateCameraZoom();
