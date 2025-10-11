@@ -25,6 +25,7 @@
         </div>
         <div id="healthDisplay">HEALTH: ❤️❤️❤️</div>
       </div>
+      <div id="transitionOverlay"></div>
       <div id="gameOverOverlay" class="overlay">GAME OVER</div>
       <div id="startModal" class="overlay">
         <h1>EIXUT</h1>
@@ -51,9 +52,12 @@
     </div>
 
     <script src="./libs/three.min.js"></script>
-    <script src="./js/config.js"></script>
-    <script src="./js/game.js"></script>
-    <script src="./js/main.js"></script>
+    <script type="importmap">
+      {
+        "imports": {}
+      }
+    </script>
+    <script type="module" src="./js/main.js"></script>
 
     <script>
       if ("serviceWorker" in navigator) {

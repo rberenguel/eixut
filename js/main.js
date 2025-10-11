@@ -1,1 +1,1 @@
-init();
+import "./game.js";
