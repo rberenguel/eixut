@@ -1,3 +1,4 @@
+// rberenguel/eixut/eixut-4ac6548c249ebe36481b419891e1f9d663f25fb5/js/enemies/CubeEnemy.js
 import { BaseEnemy } from "./BaseEnemy.js";
 import { state } from "../modules/state.js";
 import { PLAYER_SIZE, ARENA_WIDTH, ARENA_DEPTH } from "../modules/constants.js";
@@ -24,6 +25,7 @@ export class CubeEnemy extends BaseEnemy {
         new THREE.LineBasicMaterial({ color: 0x000000 }),
       ),
     );
+    this.mesh.renderOrder = 2;
     state.scene.add(this.mesh);
 
     this.velocity.set(1, 0, 0);

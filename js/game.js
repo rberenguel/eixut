@@ -1,3 +1,4 @@
+// rberenguel/eixut/eixut-4ac6548c249ebe36481b419891e1f9d663f25fb5/js/game.js
 import { state } from "./modules/state.js";
 import * as CONSTANTS from "./modules/constants.js";
 import { ConeEnemy } from "./enemies/ConeEnemy.js";
@@ -8,9 +9,11 @@ import {
   initParticles,
   updateSwordTrail,
   updateExplosionParticles,
-  updateDebris,
+  updateSplatters,
   createImpactFlare,
   createPlayerHitExplosion,
+  createSplat,
+  loadSplattersForRoom,
 } from "./modules/particles.js";
 import { setupControls } from "./modules/controls.js";
 import { updateUI } from "./modules/ui.js";
@@ -22,6 +25,7 @@ import {
   handleObstacleCollision,
   startHardScreenShake,
 } from "./modules/utils.js";
+import { generateSplatterTextures } from "./modules/textureGenerator.js";
 
 const isMobile = () => {
   const userAgent = navigator.userAgent.toLowerCase();
@@ -45,8 +49,9 @@ const needsStandalone = () => {
 function init() {
   window.state = state;
   state.map = new MapGenerator(10, 10);
-  state.map.generate(15);
+  state.map.generate(10);
   state.currentRoom = { x: 5, y: 5 };
+  state.splatterTextures = generateSplatterTextures(20, 128);
 
   state.scene = new THREE.Scene();
   state.scene.background = new THREE.Color(0x111111);
@@ -104,22 +109,15 @@ function updateDoors() {
 
   const room = state.map.grid[state.currentRoom.y][state.currentRoom.x];
 
-  console.log(
-    `--- UPDATE DOORS for Room (${state.currentRoom.x}, ${state.currentRoom.y}) ---`,
-  );
-  console.log(`Room cleared status: ${room.cleared}`);
-  const targetColorName = room.cleared ? "YELLOW (passable)" : "GREY (locked)";
-  console.log(`Target color for all doors: ${targetColorName}`);
-
   const targetColor = room.cleared ? OPEN_COLOR : LOCKED_COLOR;
 
   const { x, y } = state.currentRoom;
   const grid = state.map.grid;
 
-  // A helper to check if a neighboring room exists
   const hasNeighbor = (nx, ny) => grid[ny] && grid[ny][nx];
-  for (let door in state.doors) {
-    state.doors[door].material.color.setHex(LOCKED_COLOR);
+  for (let doorName in state.doors) {
+    if (doorName === "special") continue;
+    state.doors[doorName].material.color.setHex(LOCKED_COLOR);
   }
   // North
   state.doors.north.visible = hasNeighbor(x, y - 1);
@@ -140,6 +138,13 @@ function updateDoors() {
   state.doors.east.visible = hasNeighbor(x + 1, y);
   if (state.doors.east.visible)
     state.doors.east.material.color.setHex(targetColor);
+
+  // Special door
+  const allClear = state.map.grid.flat().every((r) => r === null || r.cleared);
+  state.doors.special.visible = false;
+  if (allClear && room.isLast) {
+    state.doors.special.visible = true;
+  }
 }
 
 function startGame() {
@@ -234,8 +239,21 @@ function animate() {
       state.nextRoomData
     ) {
       const { dx, dy, newPlayerPos } = state.nextRoomData;
-      moveRoom(dx, dy);
-      state.player.position.copy(newPlayerPos);
+      if (dx === null) {
+        state.map.generate(15);
+        state.currentRoom = { x: 5, y: 5 };
+        clearEnemiesAndBullets();
+        const newRoom =
+          state.map.grid[state.currentRoom.y][state.currentRoom.x];
+        loadSplattersForRoom(newRoom);
+        createObstacles();
+        spawnEnemiesForCurrentRoom();
+        updateDoors();
+        state.player.position.set(0, CONSTANTS.PLAYER_SIZE * 0.5, 0);
+      } else {
+        moveRoom(dx, dy);
+        state.player.position.copy(newPlayerPos);
+      }
       state.nextRoomData = null; // Clear data after use
       document.getElementById("transitionOverlay").style.opacity = "0";
     }
@@ -250,7 +268,7 @@ function animate() {
   }
   updateSwordTrail(deltaTime);
   updateExplosionParticles(deltaTime);
-  updateDebris(deltaTime);
+  updateSplatters(deltaTime);
 
   if (state.gameState === "playerDying") {
     state.gameOverTimer -= deltaTime;
@@ -604,9 +622,49 @@ function onWindowResize() {
 export function processEnemyHit(enemy, index, damage) {
   state.hitEnemiesInAttack.push(enemy);
   const died = enemy.takeDamage(damage);
+  const wallThreshold = 1.0;
+  const pos = enemy.mesh.position;
 
   if (died) {
-    enemy.destroy();
+    // Wall splatters for kills
+    if (pos.x > CONSTANTS.ARENA_WIDTH / 2 - wallThreshold) {
+      createSplat(
+        pos,
+        CONSTANTS.PLAYER_SIZE * 0.6,
+        5,
+        true,
+        new THREE.Vector3(-1, 0, 0),
+      );
+    }
+    if (pos.x < -CONSTANTS.ARENA_WIDTH / 2 + wallThreshold) {
+      createSplat(
+        pos,
+        CONSTANTS.PLAYER_SIZE * 0.6,
+        5,
+        true,
+        new THREE.Vector3(1, 0, 0),
+      );
+    }
+    if (pos.z > CONSTANTS.ARENA_DEPTH / 2 - wallThreshold) {
+      createSplat(
+        pos,
+        CONSTANTS.PLAYER_SIZE * 0.6,
+        5,
+        true,
+        new THREE.Vector3(0, 0, -1),
+      );
+    }
+    if (pos.z < -CONSTANTS.ARENA_DEPTH / 2 + wallThreshold) {
+      createSplat(
+        pos,
+        CONSTANTS.PLAYER_SIZE * 0.6,
+        5,
+        true,
+        new THREE.Vector3(0, 0, 1),
+      );
+    }
+
+    enemy.destroy(); // This calls createEnemyExplosion for large floor splatters
     state.enemies.splice(index, 1);
     state.enemiesKilled++;
     if (state.enemiesKilled % 10 == 0) {
@@ -617,9 +675,50 @@ export function processEnemyHit(enemy, index, damage) {
     }
     startScreenShake();
     updateUI();
-    //const spawnCount = Math.floor(Math.random() * 2) + 1;
-    //spawnEnemies(spawnCount);
   } else {
+    // Splatters for non-lethal hits
+    state.reusableVector1.copy(enemy.mesh.position);
+    state.reusableVector1.y = 20;
+    createSplat(state.reusableVector1, CONSTANTS.PLAYER_SIZE * 0.2, 3);
+
+    // Smaller wall splatters for non-lethal hits
+    if (pos.x > CONSTANTS.ARENA_WIDTH / 2 - wallThreshold) {
+      createSplat(
+        pos,
+        CONSTANTS.PLAYER_SIZE * 0.2,
+        2,
+        true,
+        new THREE.Vector3(-1, 0, 0),
+      );
+    }
+    if (pos.x < -CONSTANTS.ARENA_WIDTH / 2 + wallThreshold) {
+      createSplat(
+        pos,
+        CONSTANTS.PLAYER_SIZE * 0.2,
+        2,
+        true,
+        new THREE.Vector3(1, 0, 0),
+      );
+    }
+    if (pos.z > CONSTANTS.ARENA_DEPTH / 2 - wallThreshold) {
+      createSplat(
+        pos,
+        CONSTANTS.PLAYER_SIZE * 0.2,
+        2,
+        true,
+        new THREE.Vector3(0, 0, -1),
+      );
+    }
+    if (pos.z < -CONSTANTS.ARENA_DEPTH / 2 + wallThreshold) {
+      createSplat(
+        pos,
+        CONSTANTS.PLAYER_SIZE * 0.2,
+        2,
+        true,
+        new THREE.Vector3(0, 0, 1),
+      );
+    }
+
     startScreenShake();
     state.reusableVector2.copy(enemy.mesh.position);
     state.reusableVector2.y += 2;
@@ -644,8 +743,20 @@ function checkRoomCompletion() {
 
 function handleRoomTransitions() {
   const room = state.map.grid[state.currentRoom.y][state.currentRoom.x];
-  if (!room || !room.cleared || state.isTransitioning) {
-    return; // This part is fine, no log needed yet
+  if (!room || state.isTransitioning) {
+    return;
+  }
+
+  if (
+    state.doors.special.visible &&
+    state.player.position.distanceTo(state.doors.special.position) < 3.0
+  ) {
+    startRoomTransition(null, null, null);
+    return;
+  }
+
+  if (!room.cleared) {
+    return;
   }
 
   const transitionDistanceSq = 2.0 * 2.0;
@@ -654,23 +765,11 @@ function handleRoomTransitions() {
   const checkDoor = (door, dx, dy, newPosition) => {
     if (!door.visible) return false;
 
-    // --- Start Logging ---
-    const actualColorHex = `#${door.material.color.getHexString()}`;
-    /*console.log(
-      `Checking transition for door: '${door.name}'. Actual color is ${actualColorHex}.`,
-    );*/
-    // --- End Logging ---
-
-    // This is the condition that SHOULD be blocking grey doors
     if (door.material.color.getHex() === 0xffff00) {
       if (
         state.player.position.distanceToSquared(door.position) <
         transitionDistanceSq
       ) {
-        console.log(
-          `%cSUCCESS: Transitioning through '${door.name}'`,
-          "color: lightgreen",
-        );
         startRoomTransition(dx, dy, newPosition);
         return true;
       }
@@ -751,6 +850,7 @@ function moveRoom(dx, dy) {
     state.currentRoom.x = newX;
     state.currentRoom.y = newY;
     clearEnemiesAndBullets();
+    loadSplattersForRoom(state.map.grid[newY][newX]);
     createObstacles();
     spawnEnemiesForCurrentRoom();
     updateDoors();
@@ -835,11 +935,14 @@ function restartGame() {
 
   clearEnemiesAndBullets();
 
-  [
-    ...state.swordTrailParticles,
-    ...state.explosionParticles,
-    ...state.debrisDecals,
-  ].forEach((p) => {
+  // Manually clear all splatters visuals when restarting the whole game
+  const room = state.map.grid[state.currentRoom.y][state.currentRoom.x];
+  if (room) {
+    room.splatters = [];
+  }
+  loadSplattersForRoom(room);
+
+  [...state.swordTrailParticles, ...state.explosionParticles].forEach((p) => {
     p.mesh.visible = false;
     p.lifetime = 0;
   });

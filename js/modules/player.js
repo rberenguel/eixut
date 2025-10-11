@@ -98,7 +98,8 @@ export function createPlayer() {
   state.attackRangeIndicator.rotation.x = -Math.PI / 2;
   state.attackRangeIndicator.visible = false;
   state.scene.add(state.attackRangeIndicator);
-
+  state.player.castShadow = true;
+  state.player.renderOrder = 2;
   state.scene.add(state.player);
 }
 

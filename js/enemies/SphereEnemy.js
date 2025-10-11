@@ -52,7 +52,8 @@ export class SphereEnemy extends BaseEnemy {
         new THREE.LineBasicMaterial({ color: 0x000000 }),
       ),
     );
-
+    this.mesh.castShadow = true;
+    this.mesh.renderOrder = 2;
     state.scene.add(this.mesh);
     state.scene.add(this.healthBarGroup);
 

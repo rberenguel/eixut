@@ -1,3 +1,4 @@
+// rberenguel/eixut/eixut-4ac6548c249ebe36481b419891e1f9d663f25fb5/js/modules/constants.js
 export const ARENA_WIDTH = 20;
 export const ARENA_DEPTH = 20;
 export const MAX_ENEMIES = 20;
@@ -5,7 +6,7 @@ export const MAX_SPHERE_ENEMIES = 2;
 export const PLAYER_SIZE = 0.8;
 export const PLAYER_DAMAGE = 10;
 export const PLAYER_DEATH_DURATION = 1.5;
-export const CONE_ENEMY_HEALTH = 9;
+export const CONE_ENEMY_HEALTH = 14;
 export const SPHERE_ENEMY_HEALTH = 25;
 export const HEALTH_BAR_WIDTH = 1.5;
 export const HEALTH_BAR_HEIGHT = 0.15;
@@ -43,8 +44,8 @@ export const PARTICLES_PER_EXPLOSION = 15;
 export const EXPLOSION_PARTICLE_LIFETIME = 0.8;
 export const EXPLOSION_SPEED = 8;
 export const PLAYER_INVINCIBILITY_DURATION = 0.3;
-export const DEBRIS_COUNT = 30;
-export const DEBRIS_LIFETIME = 5.0;
+export const SPLATTER_COUNT = 50;
+export const SPLATTER_LIFETIME = -1;
 export const SCREEN_SHAKE_DURATION = 0.15;
 export const SCREEN_SHAKE_INTENSITY = 8;
 export const SCREEN_SHAKE_INTENSITY_HARD = 20;

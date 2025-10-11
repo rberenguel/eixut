@@ -35,7 +35,8 @@ export class ConeEnemy extends BaseEnemy {
     this.material = new THREE.MeshStandardMaterial({ color: 0xcccccc });
     this.mesh = new THREE.Mesh(geometry, this.material);
     this.mesh.position.copy(spawnPosition);
-
+    this.mesh.castShadow = true;
+    this.mesh.renderOrder = 2;
     const edges = new THREE.EdgesGeometry(geometry);
     this.mesh.add(
       new THREE.LineSegments(

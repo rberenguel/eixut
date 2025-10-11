@@ -1,3 +1,4 @@
+// rberenguel/eixut/eixut-4ac6548c249ebe36481b419891e1f9d663f25fb5/js/modules/state.js
 import { PLAYER_HEALTH, PLAYER_DAMAGE } from "./constants.js";
 
 export const state = {
@@ -18,8 +19,8 @@ export const state = {
   swordTrailContainer: null,
   explosionParticles: [],
   explosionContainer: null,
-  debrisDecals: [],
-  debrisContainer: null,
+  splatters: [],
+  splatterContainer: null,
   playerHealth: PLAYER_HEALTH,
   enemiesKilled: 0,
   sphereEnemyCount: 0,
@@ -47,7 +48,7 @@ export const state = {
   swordRotationTimer: 0,
   nextTrailParticleIndex: 0,
   nextExplosionParticleIndex: 0,
-  nextDebrisIndex: 0,
+  nextSplatIndex: 0,
   hitEnemiesInAttack: [],
   startCoords: null,
   lastSwordTipPosition: new THREE.Vector3(),

@@ -1,13 +1,11 @@
+// rberenguel/eixut/eixut-4ac6548c249ebe36481b419891e1f9d663f25fb5/js/enemies/BaseEnemy.js
 import { state } from "../modules/state.js";
 import {
   HEALTH_BAR_WIDTH,
   HEALTH_BAR_HEIGHT,
   HEALTH_BAR_VISIBILITY_DURATION,
 } from "../modules/constants.js";
-import {
-  createEnemyExplosion,
-  createDebrisSplat,
-} from "../modules/particles.js";
+import { createEnemyExplosion } from "../modules/particles.js";
 
 export class BaseEnemy {
   constructor(spawnPosition) {
@@ -46,8 +44,9 @@ export class BaseEnemy {
     }
   }
   destroy() {
-    createEnemyExplosion(this.mesh.position);
-    createDebrisSplat(this.mesh.position);
+    state.reusableVector1.copy(this.mesh.position);
+    state.reusableVector1.y = 0;
+    createEnemyExplosion(state.reusableVector1);
     state.scene.remove(this.mesh);
     state.scene.remove(this.healthBarGroup);
   }

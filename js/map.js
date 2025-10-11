@@ -1,3 +1,4 @@
+// rberenguel/eixut/eixut-4ac6548c249ebe36481b419891e1f9d663f25fb5/js/map.js
 class MapGenerator {
   constructor(width, height) {
     this.width = width;
@@ -23,7 +24,12 @@ class MapGenerator {
     // Create the starting room
     const startX = Math.floor(this.width / 2);
     const startY = Math.floor(this.height / 2);
-    this.grid[startY][startX] = { type: "start", cleared: true, enemies: 0 };
+    this.grid[startY][startX] = {
+      type: "start",
+      cleared: true,
+      enemies: 0,
+      splatters: [],
+    };
     rooms.push({ x: startX, y: startY });
     let roomCount = 1;
 
@@ -59,11 +65,25 @@ class MapGenerator {
           type: "normal",
           cleared: false,
           enemies: enemyCount,
+          splatters: [],
         };
         rooms.push({ x: newX, y: newY });
         roomCount++;
       }
     }
+
+    // Designate the last room
+    let lastRoom = rooms[0];
+    let maxDist = 0;
+    for (const room of rooms) {
+      const dist = Math.abs(room.x - startX) + Math.abs(room.y - startY);
+      if (dist > maxDist) {
+        maxDist = dist;
+        lastRoom = room;
+      }
+    }
+    this.grid[lastRoom.y][lastRoom.x].isLast = true;
+
     console.log("Map Generated:", JSON.parse(JSON.stringify(this.grid)));
   }
 }
