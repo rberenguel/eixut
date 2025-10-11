@@ -16,6 +16,7 @@ export function createPlayer() {
   const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
   state.player = new THREE.Mesh(geometry, material);
   state.player.position.set(0, 0.5 * PLAYER_SIZE, 0);
+  state.player.name = "playerBody";
   state.player.add(
     new THREE.LineSegments(
       new THREE.EdgesGeometry(geometry),

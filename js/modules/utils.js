@@ -20,38 +20,51 @@ export function isLineOfSightBlocked(start, end) {
   return false;
 }
 
-// In utils.js
+// js/modules/utils.js
+
+// js/modules/utils.js
+
+// js/modules/utils.js
 
 export function handleObstacleCollision(
   movingObject,
-  movingObjectSize,
+  movementVector,
   obstacles,
 ) {
-  if (obstacles.length === 0) return;
+  if (!obstacles || obstacles.length === 0 || movementVector.lengthSq() === 0) {
+    movingObject.position.add(movementVector);
+    return;
+  }
 
-  // Fix: Declare Box3 objects inside the function
-  const movingBox = new THREE.Box3();
-  const obstacleBox = new THREE.Box3();
+  const moveDistance = movementVector.length();
+  const moveDirection = movementVector.clone().normalize();
+  const playerBody = movingObject.getObjectByName("playerBody");
 
-  movingBox.setFromCenterAndSize(movingObject.position, movingObjectSize);
+  if (!playerBody) {
+    console.error(
+      "Player mesh 'playerBody' not found for collision detection.",
+    );
+    movingObject.position.add(movementVector);
+    return;
+  }
 
-  for (const obstacle of obstacles) {
-    obstacleBox.setFromObject(obstacle);
+  const raycaster = new THREE.Raycaster(movingObject.position, moveDirection);
+  const intersects = raycaster.intersectObjects(obstacles);
 
-    if (movingBox.intersectsBox(obstacleBox)) {
-      const overlap = movingBox.clone().intersect(obstacleBox);
-      const overlapSize = new THREE.Vector3();
-      overlap.getSize(overlapSize);
+  const playerBox = new THREE.Box3().setFromObject(playerBody);
+  const playerSize = playerBox.getSize(new THREE.Vector3());
+  const playerRadius = Math.max(playerSize.x, playerSize.z) / 8;
 
-      if (overlapSize.x < overlapSize.z) {
-        const sign = Math.sign(movingObject.position.x - obstacle.position.x);
-        movingObject.position.x += overlapSize.x * sign;
-      } else {
-        const sign = Math.sign(movingObject.position.z - obstacle.position.z);
-        movingObject.position.z += overlapSize.z * sign;
-      }
-      // After resolving one collision, we might need to re-check, but for now this is a simple solution.
-    }
+  if (
+    intersects.length > 0 &&
+    intersects[0].distance < moveDistance + playerRadius
+  ) {
+    const newMoveDistance = Math.max(0, intersects[0].distance - playerRadius);
+    movingObject.position.add(moveDirection.multiplyScalar(newMoveDistance));
+    // Signal that movement was stopped
+    movementVector.set(0, 0, 0);
+  } else {
+    movingObject.position.add(movementVector);
   }
 }
 

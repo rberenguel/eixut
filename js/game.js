@@ -10,6 +10,7 @@ import {
   updateExplosionParticles,
   updateDebris,
   createImpactFlare,
+  createPlayerHitExplosion,
 } from "./modules/particles.js";
 import { setupControls } from "./modules/controls.js";
 import { updateUI } from "./modules/ui.js";
@@ -324,7 +325,16 @@ function animate() {
         deltaTime * CONSTANTS.PLAYER_ROTATION_SPEED,
       );
       const moveDistance = CONSTANTS.DASH_SPEED * deltaTime;
-      state.player.position.addScaledVector(state.dashDirection, moveDistance);
+      const movementVector = state.dashDirection
+        .clone()
+        .multiplyScalar(moveDistance);
+
+      handleObstacleCollision(state.player, movementVector, state.obstacles);
+
+      // If movementVector is now zero, the dash hit a wall. Stop it.
+      if (movementVector.lengthSq() === 0) {
+        stopDash(false);
+      }
 
       if (
         state.player.position.distanceToSquared(state.dashStartPosition) >=
@@ -334,12 +344,20 @@ function animate() {
       }
     }
 
+    // === REPLACEMENT FOR ATTACK LOGIC ===
     if (state.isAttacking) {
       const moveDistance = CONSTANTS.ATTACK_SPEED * deltaTime;
-      state.player.position.addScaledVector(
-        state.attackDirection,
-        moveDistance,
-      );
+      const movementVector = state.attackDirection
+        .clone()
+        .multiplyScalar(moveDistance);
+
+      handleObstacleCollision(state.player, movementVector, state.obstacles);
+
+      // If movementVector is now zero, the attack hit a wall.
+      if (movementVector.lengthSq() === 0) {
+        // This check is used later to stop the sword animation
+        wallCollision = true;
+      }
 
       if (
         state.player.position.distanceToSquared(state.attackStartPosition) >=
@@ -351,13 +369,6 @@ function animate() {
         state.player.position.copy(finalPosition);
       }
     }
-
-    const playerSizeVec = new THREE.Vector3(
-      0.5 * CONSTANTS.PLAYER_SIZE,
-      0.5 * CONSTANTS.PLAYER_SIZE * 2,
-      0.5 * CONSTANTS.PLAYER_SIZE,
-    );
-    handleObstacleCollision(state.player, playerSizeVec, state.obstacles);
     const halfPlayerWidth = (0.5 * CONSTANTS.PLAYER_SIZE) / 2;
     const halfWidth = CONSTANTS.ARENA_WIDTH / 2 - halfPlayerWidth;
     const halfDepth = CONSTANTS.ARENA_DEPTH / 2 - halfPlayerWidth;
@@ -616,9 +627,9 @@ function handleRoomTransitions() {
 
     // --- Start Logging ---
     const actualColorHex = `#${door.material.color.getHexString()}`;
-    console.log(
+    /*console.log(
       `Checking transition for door: '${door.name}'. Actual color is ${actualColorHex}.`,
-    );
+    );*/
     // --- End Logging ---
 
     // This is the condition that SHOULD be blocking grey doors

@@ -61,9 +61,17 @@ export function createObstacles() {
   clearObstacles();
   const room = state.map.grid[state.currentRoom.y][state.currentRoom.x];
   if (room && room.type === "normal") {
+    const hue = Math.abs(
+      Math.sin(state.currentRoom.x * 0.5 + state.currentRoom.y * 0.3),
+    );
+    const roomColor = new THREE.Color().setHSL(hue, 0.4, 0.25); // (hue, saturation, lightness)
     const obstacle = new THREE.Mesh(
       new THREE.BoxGeometry(PLAYER_SIZE * 6, PLAYER_SIZE * 2, PLAYER_SIZE),
-      new THREE.MeshStandardMaterial({ color: 0x555555 }),
+      new THREE.MeshStandardMaterial({
+        color: roomColor,
+        transparent: true,
+        opacity: 0.5,
+      }),
     );
     obstacle.position.set(0, PLAYER_SIZE, 0);
     state.scene.add(obstacle);
