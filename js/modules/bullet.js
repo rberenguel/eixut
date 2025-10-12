@@ -14,9 +14,10 @@ export class Bullet {
       BULLET_SIZE * 2,
       8,
     );
+    const bulletColor = fromPlayer ? 0x00aaff : 0xff0000;
     const material = new THREE.MeshBasicMaterial({
-      color: 0x00aaff,
-      emissive: 0x00aaff,
+      color: bulletColor,
+      emissive: bulletColor,
     });
     this.mesh = new THREE.Mesh(geometry, material);
 
@@ -26,7 +27,7 @@ export class Bullet {
     );
     this.mesh.quaternion.copy(quaternion);
 
-    this.light = new THREE.PointLight(0x00aaff, 1, 5);
+    this.light = new THREE.PointLight(bulletColor, 1, 5);
     this.mesh.add(this.light);
     this.mesh.position.set(startPosition.x, PLAYER_SIZE / 2, startPosition.z);
     state.scene.add(this.mesh);

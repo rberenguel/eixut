@@ -109,6 +109,12 @@ canvas {
   color: #44aaff;
   font-size: 60%;
 }
+#shotgunDisplay {
+    color: #ffaa44;
+    font-size: 30%;
+    display: block;
+    flex-basis: fit-content;
+}
 #cooldownContainer {
   width: 30vw;
   height: 2vw;

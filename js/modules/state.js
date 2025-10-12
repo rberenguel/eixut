@@ -1,5 +1,5 @@
 // rberenguel/eixut/eixut-4ac6548c249ebe36481b419891e1f9d663f25fb5/js/modules/state.js
-import { PLAYER_HEALTH, PLAYER_DAMAGE } from "./constants.js";
+import { PLAYER_HEALTH, PLAYER_DAMAGE, PLAYER_MAX_ENERGY } from "./constants.js";
 
 export const state = {
   scene: null,
@@ -11,6 +11,7 @@ export const state = {
   clock: new THREE.Clock(),
   enemies: [],
   bullets: [],
+  items: [],
   sword: null,
   swordPivot: null,
   swordTip: null,
@@ -22,6 +23,9 @@ export const state = {
   splatters: [],
   splatterContainer: null,
   playerHealth: PLAYER_HEALTH,
+  playerEnergy: PLAYER_MAX_ENERGY,
+  shotgunAmmo: 0,
+  hasShotgun: false,
   enemiesKilled: 0,
   sphereEnemyCount: 0,
   playerInvincibilityTimer: 0,

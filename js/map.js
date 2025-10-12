@@ -29,6 +29,7 @@ class MapGenerator {
       cleared: true,
       enemies: 0,
       splatters: [],
+      items: ["shotgun", "health"], // DEBUG: Force items in start room
     };
     rooms.push({ x: startX, y: startY });
     let roomCount = 1;
@@ -66,6 +67,7 @@ class MapGenerator {
           cleared: false,
           enemies: enemyCount,
           splatters: [],
+          items: [],
         };
         rooms.push({ x: newX, y: newY });
         roomCount++;
@@ -83,6 +85,23 @@ class MapGenerator {
       }
     }
     this.grid[lastRoom.y][lastRoom.x].isLast = true;
+
+    // Add items to other rooms (excluding start)
+    const availableRooms = rooms.filter(
+      (room) => this.grid[room.y][room.x].type === "normal",
+    );
+    const numberOfItems = Math.min(
+      Math.floor(Math.random() * 2) + 1,
+      availableRooms.length,
+    );
+
+    for (let i = 0; i < numberOfItems; i++) {
+      const randomRoomIndex = Math.floor(Math.random() * availableRooms.length);
+      const room = availableRooms[randomRoomIndex];
+      availableRooms.splice(randomRoomIndex, 1);
+      const itemType = Math.random() < 0.5 ? "health" : "shotgun";
+      this.grid[room.y][room.x].items.push(itemType);
+    }
 
     console.log("Map Generated:", JSON.parse(JSON.stringify(this.grid)));
   }

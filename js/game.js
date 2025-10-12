@@ -3,6 +3,7 @@ import { state } from "./modules/state.js";
 import * as CONSTANTS from "./modules/constants.js";
 import { ConeEnemy } from "./enemies/ConeEnemy.js";
 import { SphereEnemy } from "./enemies/SphereEnemy.js";
+import { Item } from "./modules/item.js";
 import { createPlayer, updatePlayerHealthColor } from "./modules/player.js";
 import { createArena, createObstacles, createDoors } from "./modules/arena.js";
 import {
@@ -78,6 +79,7 @@ function init() {
   createPlayer();
   initParticles();
   spawnEnemiesForCurrentRoom();
+  spawnItemsForCurrentRoom();
   window.addEventListener("resize", onWindowResize, false);
   document
     .getElementById("gameOverOverlay")
@@ -253,6 +255,7 @@ function animate() {
         loadSplattersForRoom(newRoom);
         createObstacles();
         spawnEnemiesForCurrentRoom();
+        spawnItemsForCurrentRoom();
         updateDoors();
         state.player.position.set(0, CONSTANTS.PLAYER_SIZE * 0.5, 0);
       } else {
@@ -283,6 +286,18 @@ function animate() {
   }
 
   if (state.gameState === "playing") {
+    state.playerEnergy = Math.min(
+      state.playerEnergy + CONSTANTS.ENERGY_REGEN_RATE * deltaTime,
+      CONSTANTS.PLAYER_MAX_ENERGY,
+    );
+
+    const cooldownBar = document.getElementById("cooldownBar");
+    if (cooldownBar) {
+      const energyPercentage =
+        (state.playerEnergy / CONSTANTS.PLAYER_MAX_ENERGY) * 100;
+      cooldownBar.style.width = `${energyPercentage}%`;
+    }
+
     if (state.playerInvincibilityTimer > 0) {
       state.playerInvincibilityTimer -= deltaTime;
       if (state.playerInvincibilityTimer <= 0) {
@@ -292,14 +307,6 @@ function animate() {
 
     if (state.attackCooldownTimer > 0) {
       state.attackCooldownTimer -= deltaTime;
-      const cooldownBar = document.getElementById("cooldownBar");
-      if (cooldownBar) {
-        const cooldownProgress = Math.max(
-          0,
-          1 - state.attackCooldownTimer / CONSTANTS.ATTACK_COOLDOWN,
-        );
-        cooldownBar.style.width = `${cooldownProgress * 100}%`;
-      }
     }
 
     if (state.shieldTimer > 0) {
@@ -369,6 +376,7 @@ function animate() {
 
     checkRoomCompletion();
     handleRoomTransitions();
+    handleItemCollisions();
 
     let wallCollision = false;
     if (state.isDashing) {
@@ -738,6 +746,43 @@ function spawnEnemiesForCurrentRoom() {
   }
 }
 
+function spawnItemsForCurrentRoom() {
+  const room = state.map.grid[state.currentRoom.y][state.currentRoom.x];
+  if (room) {
+    room.items.forEach((itemType) => {
+      const position = new THREE.Vector3(
+        (Math.random() - 0.5) * (CONSTANTS.ARENA_WIDTH - 2),
+        0,
+        (Math.random() - 0.5) * (CONSTANTS.ARENA_DEPTH - 2),
+      );
+      state.items.push(new Item(position, itemType));
+    });
+  }
+}
+
+function handleItemCollisions() {
+  for (let i = state.items.length - 1; i >= 0; i--) {
+    const item = state.items[i];
+    if (
+      state.player.position.distanceTo(item.mesh.position) <
+      CONSTANTS.PLAYER_SIZE
+    ) {
+      if (item.type === "health") {
+        state.playerHealth = Math.min(
+          state.playerHealth + 1,
+          CONSTANTS.PLAYER_HEALTH + 2,
+        );
+      } else if (item.type === "shotgun") {
+        state.hasShotgun = true;
+        state.shotgunAmmo = CONSTANTS.SHOTGUN_AMMO;
+      }
+      item.destroy();
+      state.items.splice(i, 1);
+      updateUI();
+    }
+  }
+}
+
 function checkRoomCompletion() {
   const room = state.map.grid[state.currentRoom.y][state.currentRoom.x];
   if (room && !room.cleared && state.enemies.length === 0) {
@@ -855,9 +900,11 @@ function moveRoom(dx, dy) {
     state.currentRoom.x = newX;
     state.currentRoom.y = newY;
     clearEnemiesAndBullets();
+    clearItems();
     loadSplattersForRoom(state.map.grid[newY][newX]);
     createObstacles();
     spawnEnemiesForCurrentRoom();
+    spawnItemsForCurrentRoom();
     updateDoors();
   }
 }
@@ -872,6 +919,13 @@ function clearEnemiesAndBullets() {
     state.bullets[i].destroy();
   }
   state.bullets.length = 0;
+}
+
+function clearItems() {
+  for (let i = state.items.length - 1; i >= 0; i--) {
+    state.items[i].destroy();
+  }
+  state.items.length = 0;
 }
 
 function spawnEnemies(count) {
@@ -927,6 +981,9 @@ function restartGame() {
   document.getElementById("gameOverOverlay").style.display = "none";
 
   state.playerHealth = 3;
+  state.playerEnergy = CONSTANTS.PLAYER_MAX_ENERGY;
+  state.hasShotgun = false;
+  state.shotgunAmmo = 0;
   state.enemiesKilled = 0;
   state.sphereEnemyCount = 0;
   state.playerInvincibilityTimer = 0;
@@ -939,6 +996,7 @@ function restartGame() {
   state.isAttacking = false;
 
   clearEnemiesAndBullets();
+  clearItems();
 
   // Manually clear all splatters visuals when restarting the whole game
   const room = state.map.grid[state.currentRoom.y][state.currentRoom.x];
@@ -963,6 +1021,7 @@ function restartGame() {
   document.getElementById("cooldownBar").style.width = "100%";
   createObstacles();
   spawnEnemiesForCurrentRoom();
+  spawnItemsForCurrentRoom();
   state.gameState = "playing";
 }
 

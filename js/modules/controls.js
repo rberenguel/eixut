@@ -13,6 +13,11 @@ import {
   HARD_ATTACK_COOLDOWN_MULTIPLIER,
   SHIELD_DURATION,
   SHOTGUN_SPEED_MULTIPLIER,
+  ENERGY_COST_ATTACK,
+  ENERGY_COST_HARD_ATTACK,
+  ENERGY_COST_SHOTGUN,
+  ENERGY_COST_SHIELD,
+  SHOTGUN_AMMO,
 } from "./constants.js";
 import { updatePlayerHealthColor } from "./player.js";
 import { isMobile, pointToSegmentDistanceSq } from "./utils.js";
@@ -45,9 +50,15 @@ function movePlayer(direction) {
 
 function startPlayerAttack(direction) {
   if (state.isTransitioning) return;
-  if (state.isDashing || state.isAttacking || state.attackCooldownTimer > 0)
+  if (
+    state.isDashing ||
+    state.isAttacking ||
+    state.attackCooldownTimer > 0 ||
+    state.playerEnergy < ENERGY_COST_ATTACK
+  )
     return;
 
+  state.playerEnergy -= ENERGY_COST_ATTACK;
   state.isFirstSwordFrame = true;
   state.currentAttackDamage = PLAYER_DAMAGE;
   state.attackCooldownTimer = ATTACK_COOLDOWN;
@@ -83,9 +94,15 @@ function startPlayerAttack(direction) {
 
 function startPlayerHardAttack(direction) {
   if (state.isTransitioning) return;
-  if (state.isDashing || state.isAttacking || state.attackCooldownTimer > 0)
+  if (
+    state.isDashing ||
+    state.isAttacking ||
+    state.attackCooldownTimer > 0 ||
+    state.playerEnergy < ENERGY_COST_HARD_ATTACK
+  )
     return;
 
+  state.playerEnergy -= ENERGY_COST_HARD_ATTACK;
   state.isFirstSwordFrame = true;
   state.currentAttackDamage = PLAYER_DAMAGE * HARD_ATTACK_DAMAGE_MULTIPLIER;
   state.attackCooldownTimer = ATTACK_COOLDOWN * HARD_ATTACK_COOLDOWN_MULTIPLIER;
@@ -121,17 +138,33 @@ function startPlayerHardAttack(direction) {
 
 function startPlayerShotgunAttack(direction) {
   if (state.isTransitioning) return;
-  if (state.isDashing || state.isAttacking || state.attackCooldownTimer > 0)
+  if (
+    state.isDashing ||
+    state.isAttacking ||
+    state.attackCooldownTimer > 0 ||
+    !state.hasShotgun ||
+    state.shotgunAmmo <= 0 ||
+    state.playerEnergy < ENERGY_COST_SHOTGUN
+  )
     return;
 
+  state.playerEnergy -= ENERGY_COST_SHOTGUN;
+  state.shotgunAmmo--;
+  if (state.shotgunAmmo <= 0) {
+    state.hasShotgun = false;
+  }
   state.attackCooldownTimer = ATTACK_COOLDOWN;
 
   const angle = Math.atan2(direction.x, direction.z);
   state.player.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
 
   const spreadAngle = Math.PI / 16; // Angle for the spread
-  const leftDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), spreadAngle);
-  const rightDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -spreadAngle);
+  const leftDirection = direction
+    .clone()
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), spreadAngle);
+  const rightDirection = direction
+    .clone()
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), -spreadAngle);
 
   const startPosition = state.player.position;
   const targetPosition = startPosition.clone().add(direction);
@@ -139,12 +172,10 @@ function startPlayerShotgunAttack(direction) {
   const rightTargetPosition = startPosition.clone().add(rightDirection);
 
   const b = (target) => {
-    const bullet = new Bullet(startPosition, target, SHOTGUN_DISTANCE, true)
-    bullet.velocity
-                  
-                  .multiplyScalar(SHOTGUN_SPEED_MULTIPLIER);
-                  return bullet
-  }
+    const bullet = new Bullet(startPosition, target, SHOTGUN_DISTANCE, true);
+    bullet.velocity.multiplyScalar(SHOTGUN_SPEED_MULTIPLIER);
+    return bullet;
+  };
   state.bullets.push(b(targetPosition));
   state.bullets.push(b(leftTargetPosition));
   state.bullets.push(b(rightTargetPosition));
@@ -157,7 +188,13 @@ function startPlayerShotgunAttack(direction) {
 
 function activateShield() {
   if (state.isTransitioning) return;
-  if (state.attackCooldownTimer > 0 || state.shieldTimer > 0) return;
+  if (
+    state.attackCooldownTimer > 0 ||
+    state.shieldTimer > 0 ||
+    state.playerEnergy < ENERGY_COST_SHIELD
+  )
+    return;
+  state.playerEnergy -= ENERGY_COST_SHIELD;
   state.attackCooldownTimer = ATTACK_COOLDOWN;
   state.shieldTimer = SHIELD_DURATION;
   state.shield.visible = true;
@@ -180,7 +217,8 @@ function onSwipeEnd(e) {
 
   state.startCoords = null;
 
-  const isSwipe = Math.abs(deltaX) > SWIPE_DELTA || Math.abs(deltaY) > SWIPE_DELTA;
+  const isSwipe =
+    Math.abs(deltaX) > SWIPE_DELTA || Math.abs(deltaY) > SWIPE_DELTA;
   const isLongHold = holdDuration > LONG_HOLD_DURATION_MS / 1000;
   const isNormalHold = holdDuration > HOLD_DURATION_MS / 1000;
   let wasHolding = false;
@@ -198,7 +236,7 @@ function onSwipeEnd(e) {
     if (isLongHold) {
       startPlayerHardAttack(moveDir);
     } else if (isNormalHold) {
-      if (window.location.href.includes("shotgun")) {
+      if (state.hasShotgun) {
         startPlayerShotgunAttack(moveDir);
       } else {
         startPlayerAttack(moveDir);
@@ -214,18 +252,18 @@ function onSwipeEnd(e) {
 }
 
 export function setupControls() {
-  if(isMobile()){
-state.renderer.domElement.addEventListener(
-    "touchstart",
-    (e) => onSwipeStart(e.touches[0]),
-    { passive: true },
-  );
-  state.renderer.domElement.addEventListener("touchend", onSwipeEnd);
+  if (isMobile()) {
+    state.renderer.domElement.addEventListener(
+      "touchstart",
+      (e) => onSwipeStart(e.touches[0]),
+      { passive: true },
+    );
+    state.renderer.domElement.addEventListener("touchend", onSwipeEnd);
   } else {
-state.renderer.domElement.addEventListener("mousedown", onSwipeStart);
-state.renderer.domElement.addEventListener("mouseup", onSwipeEnd);
+    state.renderer.domElement.addEventListener("mousedown", onSwipeStart);
+    state.renderer.domElement.addEventListener("mouseup", onSwipeEnd);
   }
-  
+
   //
   //
 }
