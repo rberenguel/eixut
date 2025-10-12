@@ -4,6 +4,11 @@ import {
   SCREEN_SHAKE_INTENSITY_HARD,
 } from "./constants.js";
 
+export const isMobile = () => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  return /android|iphone|ipad|ipod|mobi/i.test(userAgent);
+};
+
 const raycaster = new THREE.Raycaster();
 
 export function isLineOfSightBlocked(start, end) {

@@ -83,6 +83,18 @@ export function createPlayer() {
   state.swordTip.position.z = SWORD_LENGTH;
   state.swordPivot.add(state.swordTip);
 
+  state.shotgunPivot = new THREE.Object3D();
+  state.player.add(state.shotgunPivot);
+
+  const shotgunStickGeometry = new THREE.BoxGeometry(0.05, 0.05, SWORD_LENGTH);
+  const shotgunStickMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00aaff,
+  });
+  state.shotgunStick = new THREE.Mesh(shotgunStickGeometry, shotgunStickMaterial);
+  state.shotgunStick.position.z = SWORD_LENGTH / 2;
+  state.shotgunPivot.add(state.shotgunStick);
+  state.shotgunStick.visible = false;
+
   const ringRadius = DASH_DISTANCE + SWORD_LENGTH / 2;
   const ringGeo = new THREE.RingGeometry(
     ringRadius - 0.1,

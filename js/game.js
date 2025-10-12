@@ -24,13 +24,10 @@ import {
   pointToSegmentDistanceSq,
   handleObstacleCollision,
   startHardScreenShake,
+  isMobile,
 } from "./modules/utils.js";
 import { generateSplatterTextures } from "./modules/textureGenerator.js";
 
-const isMobile = () => {
-  const userAgent = navigator.userAgent.toLowerCase();
-  return /android|iphone|ipad|ipod|mobi/i.test(userAgent);
-};
 
 const isDevel =
   window.location.hostname.startsWith("192") ||
@@ -174,17 +171,25 @@ function updateBullets(deltaTime) {
       continue;
     }
 
-    if (bullet.isReflected) {
+    if (pos.distanceToSquared(bullet.origin) > bullet.maxDistance * bullet.maxDistance) {
+      bullet.destroy();
+      state.bullets.splice(i, 1);
+      continue;
+    }
+
+    if (bullet.isReflected || bullet.fromPlayer) {
+      // Logic for player's own bullets or reflected bullets
       for (let j = state.enemies.length - 1; j >= 0; j--) {
         const enemy = state.enemies[j];
         if (pos.distanceTo(enemy.mesh.position) < CONSTANTS.PLAYER_SIZE) {
-          processEnemyHit(enemy, j, CONSTANTS.PLAYER_DAMAGE); // Reflected bullets do normal damage
+          processEnemyHit(enemy, j, CONSTANTS.PLAYER_DAMAGE);
           bullet.destroy();
           state.bullets.splice(i, 1);
-          break;
+          break; 
         }
       }
     } else {
+      // Logic for enemy bullets
       if (
         state.shieldTimer > 0 &&
         pos.distanceTo(state.player.position) < CONSTANTS.SHIELD_RADIUS

@@ -2,8 +2,11 @@ import { state } from "./state.js";
 import { BULLET_SIZE, BULLET_SPEED, PLAYER_SIZE } from "./constants.js";
 
 export class Bullet {
-  constructor(startPosition, targetPosition) {
+  constructor(startPosition, targetPosition, maxDistance = Infinity, fromPlayer = false) {
     this.isReflected = false;
+    this.origin = startPosition.clone();
+    this.maxDistance = maxDistance;
+    this.fromPlayer = fromPlayer;
     const direction = targetPosition.clone().sub(startPosition).normalize();
     const geometry = new THREE.CylinderGeometry(
       BULLET_SIZE / 2,
@@ -12,8 +15,8 @@ export class Bullet {
       8,
     );
     const material = new THREE.MeshBasicMaterial({
-      color: 0xff0000,
-      emissive: 0xff0000,
+      color: 0x00aaff,
+      emissive: 0x00aaff,
     });
     this.mesh = new THREE.Mesh(geometry, material);
 
@@ -23,7 +26,7 @@ export class Bullet {
     );
     this.mesh.quaternion.copy(quaternion);
 
-    this.light = new THREE.PointLight(0xff0000, 1, 5);
+    this.light = new THREE.PointLight(0x00aaff, 1, 5);
     this.mesh.add(this.light);
     this.mesh.position.set(startPosition.x, PLAYER_SIZE / 2, startPosition.z);
     state.scene.add(this.mesh);
