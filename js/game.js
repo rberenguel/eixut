@@ -29,7 +29,6 @@ import {
 } from "./modules/utils.js";
 import { generateSplatterTextures } from "./modules/textureGenerator.js";
 
-
 const isDevel =
   window.location.hostname.startsWith("192") ||
   window.location.hostname.startsWith("127") ||
@@ -68,6 +67,7 @@ function init() {
   document
     .getElementById("game-container")
     .appendChild(state.renderer.domElement);
+  state.renderer.domElement.style.display = "none";
   state.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
   directionalLight.position.set(-5, 10, 7.5);
@@ -88,7 +88,8 @@ function init() {
     document.getElementById("startModal").innerHTML =
       "Please install as a <span style='color: #c00'>standalone web app</span><br/>Usually this is done via<br/><span style='color: #cc0'>Share -> Add to Home Screen</span>";
 
-    document.getElementsByTagName("canvas")[0].style.display = "none";
+    // The new CSS rule makes this line unnecessary
+    // document.getElementsByTagName("canvas")[0].style.display = "none";
     return;
   } else {
     document.getElementById("startModal").addEventListener("click", startGame);
@@ -148,6 +149,8 @@ function updateDoors() {
 
 function startGame() {
   document.getElementById("startModal").style.display = "none";
+  // Show the canvas now that the game is starting
+  document.querySelector("#game-container canvas").style.display = "block";
   state.gameState = "playing";
   state.clock.start();
   animate();
@@ -173,7 +176,10 @@ function updateBullets(deltaTime) {
       continue;
     }
 
-    if (pos.distanceToSquared(bullet.origin) > bullet.maxDistance * bullet.maxDistance) {
+    if (
+      pos.distanceToSquared(bullet.origin) >
+      bullet.maxDistance * bullet.maxDistance
+    ) {
       bullet.destroy();
       state.bullets.splice(i, 1);
       continue;
@@ -187,7 +193,7 @@ function updateBullets(deltaTime) {
           processEnemyHit(enemy, j, CONSTANTS.PLAYER_DAMAGE);
           bullet.destroy();
           state.bullets.splice(i, 1);
-          break; 
+          break;
         }
       }
     } else {
@@ -298,6 +304,22 @@ function animate() {
       cooldownBar.style.width = `${energyPercentage}%`;
     }
 
+    // Energy Indicators Logic
+    const mainAttackCost = state.hasShotgun
+      ? CONSTANTS.ENERGY_COST_SHOTGUN
+      : CONSTANTS.ENERGY_COST_ATTACK;
+
+    if (state.playerEnergy >= CONSTANTS.ENERGY_COST_SHIELD) {
+      state.shieldIndicator.visible = true;
+      state.attackIndicator.visible = false;
+    } else if (state.playerEnergy >= mainAttackCost) {
+      state.shieldIndicator.visible = false;
+      state.attackIndicator.visible = true;
+    } else {
+      state.shieldIndicator.visible = false;
+      state.attackIndicator.visible = false;
+    }
+
     if (state.playerInvincibilityTimer > 0) {
       state.playerInvincibilityTimer -= deltaTime;
       if (state.playerInvincibilityTimer <= 0) {
@@ -372,6 +394,7 @@ function animate() {
     state.enemies.forEach((enemy) =>
       enemy.update(deltaTime, state.player.position),
     );
+    state.items.forEach((item) => item.update(deltaTime));
     updateBullets(deltaTime);
 
     checkRoomCompletion();
@@ -1017,6 +1040,7 @@ function restartGame() {
   state.player.quaternion.set(0, 0, 0, 1);
   state.player.visible = true;
   updatePlayerHealthColor();
+  updateDoors();
   updateUI();
   document.getElementById("cooldownBar").style.width = "100%";
   createObstacles();

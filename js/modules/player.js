@@ -67,6 +67,70 @@ export function createPlayer() {
   state.shield.visible = false;
   state.player.add(state.shield);
 
+  // Energy Indicators
+  const innerRadius = PLAYER_SIZE * 0.8;
+  const outerRadius = PLAYER_SIZE * 1.3;
+  const indicatorGeo = new THREE.RingGeometry(innerRadius, outerRadius, 32);
+
+  const vertexShader = `
+    varying float vRadius;
+    void main() {
+        // 'position' is in local space. For a ring on the XY plane,
+        // its distance from the center (0,0,0) is its radius.
+        vRadius = length(position);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+    `;
+  const fragmentShader = `
+    uniform vec3 uColor;
+    uniform float innerRadius;
+    uniform float outerRadius;
+    varying float vRadius;
+    void main() {
+        // Create a gradient that is fully opaque at the inner radius
+        // and fades to fully transparent at the outer radius.
+        float gradient = smoothstep(outerRadius, innerRadius, vRadius);
+        gl_FragColor = vec4(uColor, gradient * 0.35); // Keep it subtle
+    }
+    `;
+
+  const attackIndicatorMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uColor: { value: new THREE.Color(0x00aaff) },
+      innerRadius: { value: innerRadius },
+      outerRadius: { value: outerRadius },
+    },
+    vertexShader,
+    fragmentShader,
+    transparent: true,
+  });
+
+  state.attackIndicator = new THREE.Mesh(indicatorGeo, attackIndicatorMat);
+  state.attackIndicator.rotation.x = -Math.PI / 2;
+  state.attackIndicator.position.y = -PLAYER_SIZE / 2 + 0.01;
+  state.attackIndicator.visible = false;
+  state.player.add(state.attackIndicator);
+
+  const shieldIndicatorMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uColor: { value: new THREE.Color(0x00ff00) },
+      innerRadius: { value: innerRadius },
+      outerRadius: { value: outerRadius },
+    },
+    vertexShader,
+    fragmentShader,
+    transparent: true,
+  });
+
+  state.shieldIndicator = new THREE.Mesh(
+    indicatorGeo.clone(),
+    shieldIndicatorMat,
+  );
+  state.shieldIndicator.rotation.x = -Math.PI / 2;
+  state.shieldIndicator.position.y = -PLAYER_SIZE / 2 + 0.01;
+  state.shieldIndicator.visible = false;
+  state.player.add(state.shieldIndicator);
+
   state.swordPivot = new THREE.Object3D();
   state.player.add(state.swordPivot);
 
@@ -90,7 +154,10 @@ export function createPlayer() {
   const shotgunStickMaterial = new THREE.MeshBasicMaterial({
     color: 0x00aaff,
   });
-  state.shotgunStick = new THREE.Mesh(shotgunStickGeometry, shotgunStickMaterial);
+  state.shotgunStick = new THREE.Mesh(
+    shotgunStickGeometry,
+    shotgunStickMaterial,
+  );
   state.shotgunStick.position.z = SWORD_LENGTH / 2;
   state.shotgunPivot.add(state.shotgunStick);
   state.shotgunStick.visible = false;

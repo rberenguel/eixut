@@ -1,7 +1,7 @@
 import { state } from "./state.js";
 import { Bullet } from "./bullet.js";
 import {
-	SWIPE_DELTA,
+  SWIPE_DELTA,
   LONG_HOLD_DURATION_MS,
   HOLD_DURATION_MS,
   PLAYER_DAMAGE,
@@ -22,6 +22,7 @@ import {
 import { updatePlayerHealthColor } from "./player.js";
 import { isMobile, pointToSegmentDistanceSq } from "./utils.js";
 import { processEnemyHit } from "../game.js";
+import { updateUI } from "./ui.js";
 
 function getMoveDirection(deltaX, deltaY) {
   const viewDir = new THREE.Vector3();
@@ -153,6 +154,7 @@ function startPlayerShotgunAttack(direction) {
   if (state.shotgunAmmo <= 0) {
     state.hasShotgun = false;
   }
+  updateUI(); // This will update the shell icons
   state.attackCooldownTimer = ATTACK_COOLDOWN;
 
   const angle = Math.atan2(direction.x, direction.z);

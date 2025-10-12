@@ -1,5 +1,9 @@
 // rberenguel/eixut/eixut-4ac6548c249ebe36481b419891e1f9d663f25fb5/js/modules/state.js
-import { PLAYER_HEALTH, PLAYER_DAMAGE, PLAYER_MAX_ENERGY } from "./constants.js";
+import {
+  PLAYER_HEALTH,
+  PLAYER_DAMAGE,
+  PLAYER_MAX_ENERGY,
+} from "./constants.js";
 
 export const state = {
   scene: null,
@@ -7,6 +11,8 @@ export const state = {
   renderer: null,
   player: null,
   shield: null,
+  attackIndicator: null,
+  shieldIndicator: null,
   arenaBounds: null,
   clock: new THREE.Clock(),
   enemies: [],

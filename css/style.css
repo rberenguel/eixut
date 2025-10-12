@@ -22,6 +22,36 @@ body {
   flex-direction: column;
   text-align: center;
 }
+#hell {
+  color: #c00;
+  width: 80%;
+  font-size: 2vh;
+  border-top: 1px solid white;
+  padding-top: 1em;
+  margin-top: 1em;
+  border-bottom: 1px solid white;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+  animation: flame 5.5s infinite ease-in-out;
+}
+
+@keyframes flame {
+  0%,
+  100% {
+    color: red;
+    text-shadow:
+      0 0 8px rgba(255, 0, 0, 1),
+      0 0 16px rgba(255, 100, 0, 0.8),
+      0 0 24px rgba(255, 200, 0, 0.6);
+  }
+  50% {
+    color: orange;
+    text-shadow:
+      0 0 12px rgba(255, 80, 0, 1),
+      0 0 24px rgba(255, 160, 0, 0.8),
+      0 0 36px rgba(255, 220, 0, 0.6);
+  }
+}
 #transitionOverlay {
   position: absolute;
   top: 0;
@@ -34,11 +64,10 @@ body {
   transition: opacity 0.25s ease-in-out;
 }
 #startModal {
-  transform: translate(0, -25%);
-  font-size: 2vw;
+  font-size: 3vw;
 }
 #startModal h1 {
-  font-size: 3vw;
+  font-size: 4vh;
   margin-bottom: 2vh;
   text-shadow: 3px 3px 6px #00aaff;
 }
@@ -79,6 +108,9 @@ body {
   font-size: 8vw;
   text-shadow: 3px 3px 6px #ff0000;
 }
+#game-container canvas {
+  display: none;
+}
 #game-container {
   position: relative;
   width: 100vw;
@@ -86,9 +118,7 @@ body {
   overflow: hidden;
   transition: transform 0.05s ease-out;
 }
-canvas {
-  display: block;
-}
+
 #uiContainer {
   position: absolute;
   top: 10px;
@@ -110,10 +140,9 @@ canvas {
   font-size: 60%;
 }
 #shotgunDisplay {
-    color: #ffaa44;
-    font-size: 30%;
-    display: block;
-    flex-basis: fit-content;
+  color: #ffaa44;
+  font-size: 30%;
+  flex-basis: fit-content;
 }
 #cooldownContainer {
   width: 30vw;
@@ -128,4 +157,10 @@ canvas {
   height: 100%;
   background-color: #00aaff;
   transition: width 0.1s linear;
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+  #startModal {
+    transform: translate(0, -10%);
+  }
 }

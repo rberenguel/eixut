@@ -2,7 +2,12 @@ import { state } from "./state.js";
 import { BULLET_SIZE, BULLET_SPEED, PLAYER_SIZE } from "./constants.js";
 
 export class Bullet {
-  constructor(startPosition, targetPosition, maxDistance = Infinity, fromPlayer = false) {
+  constructor(
+    startPosition,
+    targetPosition,
+    maxDistance = Infinity,
+    fromPlayer = false,
+  ) {
     this.isReflected = false;
     this.origin = startPosition.clone();
     this.maxDistance = maxDistance;

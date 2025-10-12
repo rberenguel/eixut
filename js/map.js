@@ -29,7 +29,8 @@ class MapGenerator {
       cleared: true,
       enemies: 0,
       splatters: [],
-      items: ["shotgun", "health"], // DEBUG: Force items in start room
+      items: [],
+      //items: ["shotgun", "health"], // DEBUG: Force items in start room
     };
     rooms.push({ x: startX, y: startY });
     let roomCount = 1;
