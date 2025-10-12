@@ -850,6 +850,7 @@ function handleRoomTransitions() {
     return false;
   };
 
+  // Going EAST (+x), so appear on the WEST (-x) side of the new room.
   if (
     checkDoor(
       state.doors.east,
@@ -863,6 +864,7 @@ function handleRoomTransitions() {
     )
   )
     return;
+  // Going WEST (-x), so appear on the EAST (+x) side of the new room.
   if (
     checkDoor(
       state.doors.west,
@@ -876,6 +878,7 @@ function handleRoomTransitions() {
     )
   )
     return;
+  // Going SOUTH (+z), so appear on the NORTH (-z) side of the new room.
   if (
     checkDoor(
       state.doors.south,
@@ -889,6 +892,7 @@ function handleRoomTransitions() {
     )
   )
     return;
+  // Going NORTH (-z), so appear on the SOUTH (+z) side of the new room.
   if (
     checkDoor(
       state.doors.north,
@@ -909,6 +913,11 @@ const TRANSITION_DURATION = 0.5; // Total duration: 0.25s fade out, 0.25s fade i
 // Add this new helper function
 function startRoomTransition(dx, dy, newPlayerPos) {
   if (state.isTransitioning) return;
+
+  // Stop any ongoing player movement to prevent it from carrying over.
+  stopDash();
+  stopAttack();
+
   state.isTransitioning = true;
   state.transitionTimer = TRANSITION_DURATION;
   state.nextRoomData = { dx, dy, newPlayerPos };

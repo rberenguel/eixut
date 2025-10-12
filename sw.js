@@ -1,4 +1,4 @@
-const CACHE_NAME = "eixut-cache-v0.3.0-beta";
+const CACHE_NAME = "eixut-cache-v0.3.0-rc";
 const urlsToCache = [
   "./css/style.css",
   "./icon.PNG",
@@ -13,6 +13,7 @@ const urlsToCache = [
   "./js/modules/bullet.js",
   "./js/modules/constants.js",
   "./js/modules/controls.js",
+  "./js/modules/item.js",
   "./js/modules/particles.js",
   "./js/modules/player.js",
   "./js/modules/state.js",
