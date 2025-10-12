@@ -1,5 +1,6 @@
 import { state } from "./state.js";
 import {
+	SWIPE_DELTA,
   LONG_HOLD_DURATION_MS,
   HOLD_DURATION_MS,
   PLAYER_DAMAGE,
@@ -140,7 +141,7 @@ function onSwipeEnd(e) {
 
   state.startCoords = null;
 
-  const isSwipe = Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10;
+  const isSwipe = Math.abs(deltaX) > SWIPE_DELTA || Math.abs(deltaY) > SWIPE_DELTA;
   const isLongHold = holdDuration > LONG_HOLD_DURATION_MS / 1000;
   const isNormalHold = holdDuration > HOLD_DURATION_MS / 1000;
   let wasHolding = false;
@@ -176,6 +177,6 @@ export function setupControls() {
     { passive: true },
   );
   state.renderer.domElement.addEventListener("touchend", onSwipeEnd);
-  state.renderer.domElement.addEventListener("mousedown", onSwipeStart);
-  state.renderer.domElement.addEventListener("mouseup", onSwipeEnd);
+  //state.renderer.domElement.addEventListener("mousedown", onSwipeStart);
+  //state.renderer.domElement.addEventListener("mouseup", onSwipeEnd);
 }

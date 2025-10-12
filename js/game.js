@@ -947,7 +947,7 @@ function restartGame() {
     p.lifetime = 0;
   });
 
-  state.map.generate(15);
+  state.map.generate(10);
   state.currentRoom = { x: 5, y: 5 };
 
   state.player.position.set(0, 0.5 * CONSTANTS.PLAYER_SIZE, 0);
