@@ -2,7 +2,7 @@
   "name": "eixut",
   "short_name": "eixut",
   "author": "Ruben Berenguel",
-  "version": "0.3.0-rc",
+  "version": "0.3.1-rc",
   "description": "Game control explorations",
   "start_url": "./index.html",
   "display": "standalone",

@@ -1,5 +1,6 @@
 // rberenguel/eixut/eixut-4ac6548c249ebe36481b419891e1f9d663f25fb5/js/modules/constants.js
 export const SWIPE_DELTA = 7;
+export const ATTACK_SWIPE_DELTA = 10;
 export const ARENA_WIDTH = 15;
 export const ARENA_DEPTH = 15;
 export const MAX_ENEMIES = 20;
@@ -13,12 +14,12 @@ export const HEALTH_BAR_WIDTH = 1.5;
 export const HEALTH_BAR_HEIGHT = 0.15;
 export const HEALTH_BAR_VISIBILITY_DURATION = 2.0;
 export const CONE_ENEMY_HEIGHT = PLAYER_SIZE * 2.0;
-export const DASH_DISTANCE = 4;
+export const DASH_DISTANCE = 5;
 export const SHOTGUN_DISTANCE = 6;
 export const SHOTGUN_SPEED_MULTIPLIER = 1.5;
-export const DASH_SPEED = 30;
+export const DASH_SPEED = 50;
 export const ATTACK_DISTANCE = DASH_DISTANCE;
-export const ATTACK_SPEED = 60;
+export const ATTACK_SPEED = 100;
 export const SWORD_LENGTH = 2.0;
 export const SWORD_ARC_DURATION = 0.22;
 export const SWORD_ACTIVATION_DISTANCE_RATIO = 0.1;

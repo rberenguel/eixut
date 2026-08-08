@@ -376,11 +376,12 @@ function animate() {
         holdTime > CONSTANTS.HOLD_DURATION_MS / 1000 &&
         !state.isHolding
       ) {
+        const canAttack = state.playerEnergy >= CONSTANTS.ENERGY_COST_ATTACK;
         state.isHolding = true;
         if (state.playerInvincibilityTimer <= 0) {
-          state.player.material.color.setHex(0x00aaff);
+          state.player.material.color.setHex(canAttack ? 0x00aaff : 0xff6600);
         }
-        state.attackRangeIndicator.material.color.setHex(0x00aaff);
+        state.attackRangeIndicator.material.color.setHex(canAttack ? 0x00aaff : 0xff6600);
         state.attackRangeIndicator.position.set(
           state.player.position.x,
           0.01,
@@ -486,18 +487,8 @@ function animate() {
 
     if (state.isAttacking) {
       if (!state.sword.visible) {
-        const distanceSq = state.player.position.distanceToSquared(
-          state.attackStartPosition,
-        );
-        if (
-          distanceSq >=
-          (CONSTANTS.ATTACK_DISTANCE *
-            CONSTANTS.SWORD_ACTIVATION_DISTANCE_RATIO) **
-            2
-        ) {
-          state.sword.visible = true;
-          state.swordRotationTimer = 0;
-        }
+        state.sword.visible = true;
+        state.swordRotationTimer = 0;
       }
 
       if (state.sword.visible) {

@@ -108,6 +108,18 @@ body {
   font-size: 8vw;
   text-shadow: 3px 3px 6px #ff0000;
 }
+#debugOverlay {
+  position: absolute;
+  top: 150px;
+  left: 6px;
+  z-index: 100;
+  pointer-events: none;
+  font-family: monospace;
+  font-size: 11px;
+  color: #0f0;
+  text-shadow: 1px 1px 2px #000;
+  line-height: 1.5;
+}
 #game-container canvas {
   display: none;
 }

@@ -61,6 +61,7 @@ export const state = {
   nextSplatIndex: 0,
   hitEnemiesInAttack: [],
   startCoords: null,
+  gestureConsumed: false,
   lastSwordTipPosition: new THREE.Vector3(),
   reusableVector1: new THREE.Vector3(),
   reusableVector2: new THREE.Vector3(),

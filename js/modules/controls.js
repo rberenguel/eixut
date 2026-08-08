@@ -2,6 +2,7 @@ import { state } from "./state.js";
 import { Bullet } from "./bullet.js";
 import {
   SWIPE_DELTA,
+  ATTACK_SWIPE_DELTA,
   LONG_HOLD_DURATION_MS,
   HOLD_DURATION_MS,
   PLAYER_DAMAGE,
@@ -51,13 +52,10 @@ function movePlayer(direction) {
 
 function startPlayerAttack(direction) {
   if (state.isTransitioning) return;
-  if (
-    state.isDashing ||
-    state.isAttacking ||
-    state.attackCooldownTimer > 0 ||
-    state.playerEnergy < ENERGY_COST_ATTACK
-  )
+  if (state.isDashing || state.isAttacking || state.attackCooldownTimer > 0 || state.playerEnergy < ENERGY_COST_ATTACK) {
+    log(`ATK BLOCKED dash=${state.isDashing} atk=${state.isAttacking} cd=${state.attackCooldownTimer.toFixed(2)} e=${state.playerEnergy.toFixed(0)}<${ENERGY_COST_ATTACK}`);
     return;
+  }
 
   state.playerEnergy -= ENERGY_COST_ATTACK;
   state.isFirstSwordFrame = true;
@@ -202,14 +200,45 @@ function activateShield() {
   state.shield.visible = true;
 }
 
+const _log = [];
+function log(msg) {
+  _log.push(msg);
+  if (_log.length > 10) _log.shift();
+  const el = document.getElementById("debugLog");
+  if (el) el.innerHTML = _log.join("<br>");
+}
+
 function onSwipeStart(e) {
-  if (state.gameState !== "playing" || state.isDashing || state.isAttacking)
-    return;
+  if (state.gameState !== "playing") return;
   state.startCoords = { x: e.clientX, y: e.clientY };
   state.holdStartTime = state.clock.getElapsedTime();
+  state.gestureConsumed = false;
+}
+
+function onSwipeMove(e) {
+  if (!state.startCoords || state.gameState !== "playing") return;
+  if (state.gestureConsumed) return;
+
+  const holdDuration = state.clock.getElapsedTime() - state.holdStartTime;
+  if (holdDuration > HOLD_DURATION_MS / 1000) return;
+
+  const coords = e.touches ? e.touches[0] : e;
+  const deltaX = coords.clientX - state.startCoords.x;
+  const deltaY = coords.clientY - state.startCoords.y;
+
+  if (Math.abs(deltaX) > SWIPE_DELTA || Math.abs(deltaY) > SWIPE_DELTA) {
+    log(`MOVE-DASH h=${holdDuration.toFixed(2)} d=${Math.hypot(deltaX,deltaY).toFixed(0)}`);
+    state.gestureConsumed = true;
+    state.startCoords = null;
+    movePlayer(getMoveDirection(deltaX, deltaY));
+  }
 }
 
 function onSwipeEnd(e) {
+  if (state.gestureConsumed) {
+    state.gestureConsumed = false;
+    return;
+  }
   if (!state.startCoords || state.gameState !== "playing") return;
 
   const holdDuration = state.clock.getElapsedTime() - state.holdStartTime;
@@ -219,10 +248,10 @@ function onSwipeEnd(e) {
 
   state.startCoords = null;
 
-  const isSwipe =
-    Math.abs(deltaX) > SWIPE_DELTA || Math.abs(deltaY) > SWIPE_DELTA;
   const isLongHold = holdDuration > LONG_HOLD_DURATION_MS / 1000;
   const isNormalHold = holdDuration > HOLD_DURATION_MS / 1000;
+  const swipeThreshold = isNormalHold ? ATTACK_SWIPE_DELTA : SWIPE_DELTA;
+  const isSwipe = Math.hypot(deltaX, deltaY) > swipeThreshold;
   let wasHolding = false;
 
   if (state.isHolding) {
@@ -235,35 +264,59 @@ function onSwipeEnd(e) {
 
   if (isSwipe) {
     const moveDir = getMoveDirection(deltaX, deltaY);
+    const d = Math.hypot(deltaX, deltaY).toFixed(0);
     if (isLongHold) {
+      log(`END hard-atk h=${holdDuration.toFixed(2)} d=${d}`);
       startPlayerHardAttack(moveDir);
     } else if (isNormalHold) {
+      log(`END atk h=${holdDuration.toFixed(2)} d=${d}`);
       if (state.hasShotgun) {
         startPlayerShotgunAttack(moveDir);
       } else {
         startPlayerAttack(moveDir);
       }
     } else {
+      log(`END short-dash h=${holdDuration.toFixed(2)} d=${d}`);
       movePlayer(moveDir);
     }
   } else {
     if (!wasHolding) {
+      log(`END shield h=${holdDuration.toFixed(2)}`);
       activateShield();
     }
   }
 }
 
+function onTouchCancel() {
+  log(`CANCEL sc=${state.startCoords !== null} gc=${state.gestureConsumed}`);
+  state.startCoords = null;
+  state.gestureConsumed = false;
+  if (state.isHolding) {
+    state.isHolding = false;
+    state.isHardCharging = false;
+    state.attackRangeIndicator.visible = false;
+    updatePlayerHealthColor();
+  }
+}
+
 export function setupControls() {
   if (isMobile()) {
-    state.renderer.domElement.addEventListener(
+    window.addEventListener(
       "touchstart",
       (e) => onSwipeStart(e.touches[0]),
       { passive: true },
     );
-    state.renderer.domElement.addEventListener("touchend", onSwipeEnd);
+    window.addEventListener(
+      "touchmove",
+      onSwipeMove,
+      { passive: true },
+    );
+    window.addEventListener("touchend", onSwipeEnd);
+    window.addEventListener("touchcancel", onTouchCancel);
   } else {
-    state.renderer.domElement.addEventListener("mousedown", onSwipeStart);
-    state.renderer.domElement.addEventListener("mouseup", onSwipeEnd);
+    window.addEventListener("mousedown", onSwipeStart);
+    window.addEventListener("mousemove", onSwipeMove);
+    window.addEventListener("mouseup", onSwipeEnd);
   }
 
   //
